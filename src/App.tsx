@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LanguageProvider } from '@/context/LanguageContext';
@@ -7,6 +7,7 @@ import CustomCursor from '@/components/CustomCursor';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FloatingPhone from '@/components/FloatingPhone';
+import ServiceMarquee from '@/components/ServiceMarquee';
 import Home from '@/pages/Home';
 import About from '@/pages/About';
 import Products from '@/pages/Products';
@@ -14,6 +15,8 @@ import Blog from '@/pages/Blog';
 import Contact from '@/pages/Contact';
 import TelliTerbiye from '@/pages/TelliTerbiye';
 import Admin from '@/pages/Admin';
+import ProductDetail from '@/pages/ProductDetail';
+import BlogDetail from '@/pages/BlogDetail';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -54,9 +57,12 @@ function AppContent() {
           <Route path="/blog" element={<PageWrapper><Blog /></PageWrapper>} />
           <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
           <Route path="/telli-terbiye" element={<PageWrapper><TelliTerbiye /></PageWrapper>} />
+          <Route path="/product/:id" element={<PageWrapper><ProductDetail /></PageWrapper>} />
+          <Route path="/blog/:id" element={<PageWrapper><BlogDetail /></PageWrapper>} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </AnimatePresence>
+      {!isAdmin && <ServiceMarquee />}
       {!isAdmin && <Footer />}
       {!isAdmin && <FloatingPhone />}
     </>
@@ -65,12 +71,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <LanguageProvider>
         <DataProvider>
           <AppContent />
         </DataProvider>
       </LanguageProvider>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

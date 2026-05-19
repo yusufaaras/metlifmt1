@@ -1,21 +1,38 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import * as api from '@/services/api';
+
+export interface Multilang {
+  tr: string;
+  en: string;
+  es: string;
+  ru: string;
+}
 
 export interface Product {
   id: string;
-  title: string;
-  description: string;
-  category: string;
-  specs: string[];
+  title: string | Multilang;
+  titleKey?: string;
+  description: string | Multilang;
+  descKey?: string;
+  category: string | Multilang;
+  specs: string[] | { tr: string[], en: string[], es: string[], ru: string[] };
+  specsKeys?: string[];
   icon: string;
+  images?: string[];
 }
 
 export interface BlogPost {
   id: string;
-  title: string;
-  content: string;
-  excerpt: string;
+  title: string | Multilang;
+  titleKey?: string;
+  content: string | Multilang;
+  contentKey?: string;
+  excerpt: string | Multilang;
+  excerptKey?: string;
   date: string;
-  category: string;
+  category: string | Multilang;
+  categoryKey?: string;
+  images?: string[];
 }
 
 export interface AdminUser {
@@ -26,27 +43,27 @@ export interface AdminUser {
 }
 
 const defaultProducts: Product[] = [
-  { id: '1', title: 'Dikenli Tel (Ters Büküm)', description: 'Sıcak daldırma galvanizli telden üretilen ters bükümlü dikenli tel. TSE EN 10223-1:2012 ve ISO 9001:2015 standartlarında.', category: 'wire', specs: ['Halat teli çapı: 1.30 - 2.50 mm', 'Diken teli çapı: 1.30 - 2.00 mm', 'Dikenler arası: 75 - 110 mm', 'TSE EN 10223-1:2012'], icon: '🔗' },
-  { id: '2', title: 'Helezon (Fens) Çit Teli', description: 'Galvanizli veya PVC kaplı helezon çit teli. Farklı göz aralığı ve rulo genişliği seçenekleri.', category: 'fence', specs: ['Tel çapı: 1.8 - 4 mm', 'Göz aralığı: 1.5x1.5 - 7x7 cm', 'Rulo genişliği: 1 - 6 mt', 'Galvanizli veya PVC kaplı'], icon: '🏗️' },
-  { id: '3', title: 'Emprenyeli Ahşap Direkler', description: 'Kestane, kızılçam, sarıçam ağaçlarından üretilen, WBC ile basınç altında emprenye edilmiş direkler.', category: 'wood', specs: ['Kalınlık: Q6 - Q12', 'Uzunluk: 100 - 200 cm', 'Çap: 8-10 cm', 'WBC emprenye'], icon: '🪵' },
-  { id: '4', title: 'L Profil ve Kazık', description: 'Çeşitli ölçülerde L profil ve kazık çeşitleri. Tek ve çift T seçenekleri mevcuttur.', category: 'fence', specs: ['40x40x4 mm (70-200 cm)', '25x25x3 mm (70-90 cm)', '40x40x5 mm (200-225 cm)', 'Tek/Çift T seçenekleri'], icon: '📐' },
-  { id: '5', title: 'Jiletli Tel', description: 'Yüksek güvenlikli alanlar için jiletli tel çözümleri. Galvanizli çelik malzemeden üretim.', category: 'wire', specs: ['Yüksek güvenlik', 'Galvanizli çelik', 'Farklı çap seçenekleri', 'Uzun ömürlü'], icon: '⚔️' },
-  { id: '6', title: 'Kafes Tel', description: 'Çeşitli amaçlarla kullanılabilen galvanizli kafes tel ürünleri.', category: 'wire', specs: ['Galvanizli', 'Farklı göz aralıkları', 'Çeşitli genişlikler', 'Dayanıklı yapı'], icon: '🔲' },
-  { id: '7', title: 'Altıgen Örgü Çit Teli', description: 'Tavuk teli olarak da bilinen altıgen örgü çit teli. Bahçe ve kümes uygulamaları için ideal.', category: 'fence', specs: ['Altıgen örgü', 'Galvanizli', 'Farklı göz boyutları', 'Hafif ve dayanıklı'], icon: '⬡' },
-  { id: '8', title: 'Kümes Teli', description: 'Kümes ve bahçe çitleme uygulamaları için özel üretim kümes teli.', category: 'fence', specs: ['Galvanizli', 'Korozyona dayanıklı', 'Kolay uygulama', 'Ekonomik'], icon: '🐔' },
-  { id: '9', title: 'Bağ Teli', description: 'Bağ ve bahçelerde kullanılan özel üretim bağ teli.', category: 'agriculture', specs: ['Galvanizli', 'Yüksek mukavemet', 'UV dayanıklı', 'Uzun ömürlü'], icon: '🍇' },
-  { id: '10', title: 'Telli Terbiye File Sistemi', description: 'Modern meyve bahçeleri için emprenyeli ahşap direk, galvanizli çelik halat ve koruyucu filelerden oluşan profesyonel sistem.', category: 'agriculture', specs: ['Emprenyeli ahşap direk', 'Galvanizli çelik halat', 'Koruyucu file', 'Profesyonel kurulum'], icon: '🌳' },
-  { id: '11', title: 'Galvanizli Boru Direk', description: 'Çit ve çevre güvenliği uygulamalarında kullanılan galvanizli boru direkler.', category: 'fence', specs: ['Galvanizli', 'Farklı çap seçenekleri', 'Farklı uzunluklar', 'Korozyona dayanıklı'], icon: '🔩' },
-  { id: '12', title: 'Demir Direk', description: 'Çit ve çevre güvenliği için sağlam demir direk çeşitleri.', category: 'fence', specs: ['Yüksek mukavemet', 'Farklı profiller', 'Boyalı veya ham', 'Uzun ömürlü'], icon: '🏛️' },
-  { id: '13', title: 'Gölgeleme ve Dolu Filesi', description: 'Güneş yanığını ve meyve çatlamasını önleyen koruyucu fileler.', category: 'accessories', specs: ['UV dayanıklı', 'Farklı gölgeleme oranları', 'Dolu koruması', 'Uzun ömürlü'], icon: '☀️' },
-  { id: '14', title: 'Kova Tipi Ahşap Direk Şapkası', description: 'Direği su ve nemden koruyarak ömrünü uzatan ahşap direk şapkası.', category: 'accessories', specs: ['Su geçirmez', 'Kolay montaj', 'Dayanıklı malzeme', 'Direk koruma'], icon: '🎩' },
-  { id: '15', title: 'Tel Gerdirme Aparatı', description: 'Sistemin zamanla gevşemesini önleyerek gergin tutan tel gerdirme aparatı.', category: 'accessories', specs: ['Galvanizli çelik', 'Kolay kullanım', 'Ayarlanabilir', 'Uzun ömürlü'], icon: '🔧' },
+  { id: '1', titleKey: 'p1.title', descKey: 'p1.desc', title: 'Dikenli Tel (Ters Büküm)', description: '', category: 'wire', specs: [], specsKeys: ['p1.s1','p1.s2','p1.s3','p1.s4'], icon: '🔗' },
+  { id: '2', titleKey: 'p2.title', descKey: 'p2.desc', title: 'Helezon (Fens) Çit Teli', description: '', category: 'fence', specs: [], specsKeys: ['p2.s1','p2.s2','p2.s3','p2.s4'], icon: '🏗️' },
+  { id: '3', titleKey: 'p3.title', descKey: 'p3.desc', title: 'Emprenyeli Ahşap Direkler', description: '', category: 'wood', specs: [], specsKeys: ['p3.s1','p3.s2','p3.s3','p3.s4'], icon: '🪵' },
+  { id: '4', titleKey: 'p4.title', descKey: 'p4.desc', title: 'L Profil ve Kazık', description: '', category: 'fence', specs: [], specsKeys: ['p4.s1','p4.s2','p4.s3','p4.s4'], icon: '📐' },
+  { id: '5', titleKey: 'p5.title', descKey: 'p5.desc', title: 'Jiletli Tel', description: '', category: 'wire', specs: [], specsKeys: ['p5.s1','p5.s2','p5.s3','p5.s4'], icon: '⚔️' },
+  { id: '6', titleKey: 'p6.title', descKey: 'p6.desc', title: 'Kafes Tel', description: '', category: 'wire', specs: [], specsKeys: ['p6.s1','p6.s2','p6.s3','p6.s4'], icon: '🔲' },
+  { id: '7', titleKey: 'p7.title', descKey: 'p7.desc', title: 'Altıgen Örgü Çit Teli', description: '', category: 'fence', specs: [], specsKeys: ['p7.s1','p7.s2','p7.s3','p7.s4'], icon: '⬡' },
+  { id: '8', titleKey: 'p8.title', descKey: 'p8.desc', title: 'Kümes Teli', description: '', category: 'fence', specs: [], specsKeys: ['p8.s1','p8.s2','p8.s3','p8.s4'], icon: '🐔' },
+  { id: '9', titleKey: 'p9.title', descKey: 'p9.desc', title: 'Bağ Teli', description: '', category: 'agriculture', specs: [], specsKeys: ['p9.s1','p9.s2','p9.s3','p9.s4'], icon: '🍇' },
+  { id: '10', titleKey: 'p10.title', descKey: 'p10.desc', title: 'Telli Terbiye File Sistemi', description: '', category: 'agriculture', specs: [], specsKeys: ['p10.s1','p10.s2','p10.s3','p10.s4'], icon: '🌳' },
+  { id: '11', titleKey: 'p11.title', descKey: 'p11.desc', title: 'Galvanizli Boru Direk', description: '', category: 'fence', specs: [], specsKeys: ['p11.s1','p11.s2','p11.s3','p11.s4'], icon: '🔩' },
+  { id: '12', titleKey: 'p12.title', descKey: 'p12.desc', title: 'Demir Direk', description: '', category: 'fence', specs: [], specsKeys: ['p12.s1','p12.s2','p12.s3','p12.s4'], icon: '🏛️' },
+  { id: '13', titleKey: 'p13.title', descKey: 'p13.desc', title: 'Gölgeleme ve Dolu Filesi', description: '', category: 'accessories', specs: [], specsKeys: ['p13.s1','p13.s2','p13.s3','p13.s4'], icon: '☀️' },
+  { id: '14', titleKey: 'p14.title', descKey: 'p14.desc', title: 'Kova Tipi Ahşap Direk Şapkası', description: '', category: 'accessories', specs: [], specsKeys: ['p14.s1','p14.s2','p14.s3','p14.s4'], icon: '🎩' },
+  { id: '15', titleKey: 'p15.title', descKey: 'p15.desc', title: 'Tel Gerdirme Aparatı', description: '', category: 'accessories', specs: [], specsKeys: ['p15.s1','p15.s2','p15.s3','p15.s4'], icon: '🔧' },
 ];
 
 const defaultBlogPosts: BlogPost[] = [
-  { id: '1', title: 'Telli Terbiye Sistemlerinde Yeni Dönem', content: 'Modern tarım uygulamalarında telli terbiye file sistemleri gün geçtikçe daha fazla önem kazanmaktadır. FMT Makina olarak bu alanda sunduğumuz yenilikçi çözümlerle müşterilerimizin verimliliklerini artırıyoruz. Sistemlerimiz, emprenyeli ahşap direkler, galvanizli çelik halatlar ve özel koruyucu filelerden oluşmaktadır. Bu sistem sayesinde ağaçların gelişimi desteklenir, budama ve hasat işlemleri kolaylaşır, birim alandan maksimum verim elde edilir.', excerpt: 'Modern tarım uygulamalarında telli terbiye file sistemleri gün geçtikçe daha fazla önem kazanmaktadır.', date: '2024-12-15', category: 'Projeler' },
-  { id: '2', title: 'ISO 9001:2015 Sertifikamızı Yeniledik', content: 'FMT Makina Mühendislik olarak kalite standartlarımızı sürekli yükseltiyoruz. ISO 9001:2015 sertifikamızı başarıyla yeniledik. Bu sertifika, üretim süreçlerimizin uluslararası kalite standartlarına uygunluğunu teyit etmektedir. Müşterilerimize her zaman en yüksek kalitede ürün ve hizmet sunma taahhüdümüzü sürdürüyoruz.', excerpt: 'FMT Makina Mühendislik olarak kalite standartlarımızı sürekli yükseltiyoruz.', date: '2024-11-20', category: 'Haberler' },
-  { id: '3', title: 'Kozan OSB\'deki Üretim Tesisimiz Genişliyor', content: 'Artan üretim kapasitesi ve büyüyen müşteri talepleri doğrultusunda Adana Kozan OSB\'deki üretim tesisimizi genişletiyoruz. Yeni üretim hatlarımız ile tel ürünleri ve çit sistemleri üretim kapasitemizi önemli ölçüde artıracağız. Modern teknoloji ile donatılmış yeni tesisimiz, daha hızlı ve daha kaliteli üretim yapmamızı sağlayacaktır.', excerpt: 'Adana Kozan OSB\'deki üretim tesisimizi genişletiyoruz.', date: '2024-10-05', category: 'Haberler' },
+  { id: '1', titleKey: 'blog1.title', contentKey: 'blog1.content', excerptKey: 'blog1.excerpt', categoryKey: 'blog1.cat', title: '', content: '', excerpt: '', date: '2024-12-15', category: '' },
+  { id: '2', titleKey: 'blog2.title', contentKey: 'blog2.content', excerptKey: 'blog2.excerpt', categoryKey: 'blog2.cat', title: '', content: '', excerpt: '', date: '2024-11-20', category: '' },
+  { id: '3', titleKey: 'blog3.title', contentKey: 'blog3.content', excerptKey: 'blog3.excerpt', categoryKey: 'blog3.cat', title: '', content: '', excerpt: '', date: '2024-10-05', category: '' },
 ];
 
 const defaultAdminUsers: AdminUser[] = [
@@ -73,8 +90,18 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+const DATA_VERSION = '2';
+
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
+    // If data version changed, clear old data and use fresh defaults
+    const storedVersion = localStorage.getItem('metli-data-version');
+    if (storedVersion !== DATA_VERSION) {
+      localStorage.removeItem('metli-products');
+      localStorage.removeItem('metli-blog');
+      localStorage.setItem('metli-data-version', DATA_VERSION);
+      return fallback;
+    }
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : fallback;
   } catch {
@@ -86,11 +113,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(() => loadFromStorage('metli-products', defaultProducts));
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => loadFromStorage('metli-blog', defaultBlogPosts));
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => loadFromStorage('metli-admins', defaultAdminUsers));
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('metli-auth'));
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('metli-auth') || !!sessionStorage.getItem('metli-token'));
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => {
     const saved = sessionStorage.getItem('metli-user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Fetch data from API on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [apiProducts, apiBlogs] = await Promise.all([
+          api.getProducts(),
+          api.getBlogPosts()
+        ]);
+        if (apiProducts) setProducts(apiProducts.map(p => ({ ...p, id: String(p.id) })));
+        if (apiBlogs) setBlogPosts(apiBlogs.map(b => ({ ...b, id: String(b.id) })));
+      } catch (err) {
+        console.log('Using local data (API not available)');
+      }
+    };
+    fetchData();
+
+    const hasAuth = !!sessionStorage.getItem('metli-auth') || !!sessionStorage.getItem('metli-token');
+    if (hasAuth !== isLoggedIn) setIsLoggedIn(hasAuth);
+  }, []);
 
   const saveProducts = (p: Product[]) => { setProducts(p); localStorage.setItem('metli-products', JSON.stringify(p)); };
   const saveBlog = (b: BlogPost[]) => { setBlogPosts(b); localStorage.setItem('metli-blog', JSON.stringify(b)); };
@@ -121,6 +168,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteAdminUser = (id: string) => saveAdmins(adminUsers.filter(u => u.id !== id));
 
   const login = (username: string, password: string): boolean => {
+    // Note: In real production, this login logic is handled by the backend API via src/services/api.ts
+    // This local logic remains for the frontend-only preview mode
     const user = adminUsers.find(u => u.username === username && u.password === password);
     if (user) {
       setIsLoggedIn(true);

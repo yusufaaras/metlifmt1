@@ -1,3 +1,5 @@
+import { productTranslations } from './productTranslations';
+
 export type Language = 'tr' | 'en' | 'es' | 'ru';
 
 export const languageNames: Record<Language, string> = {
@@ -7,7 +9,7 @@ export const languageNames: Record<Language, string> = {
   ru: 'Русский',
 };
 
-export const translations: Record<Language, Record<string, string>> = {
+const base: Record<Language, Record<string, string>> = {
   tr: {
     'nav.home': 'Anasayfa',
     'nav.about': 'Hakkımızda',
@@ -624,4 +626,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'common.learnMore': 'Подробнее',
     'common.viewAll': 'Смотреть Все',
   },
+};
+
+// Merge product/blog translations into base
+export const translations: Record<Language, Record<string, string>> = {
+  tr: { ...base.tr, ...productTranslations.tr },
+  en: { ...base.en, ...productTranslations.en },
+  es: { ...base.es, ...productTranslations.es },
+  ru: { ...base.ru, ...productTranslations.ru },
 };

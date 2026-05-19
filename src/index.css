@@ -96,3 +96,12 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-8px);
   box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}

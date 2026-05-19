@@ -63,17 +63,26 @@ export default function ProductDetail() {
   const localizedDescription = getLocalizedText(product.description, language);
 
   // Teknik özellikleri (specs) güvenli bir şekilde çözme ve dizi haline getirme
+  // Teknik özellikleri (specs) güvenli bir şekilde çözme ve dizi haline getirme
   const getLocalizedSpecs = (): string[] => {
     if (!product.specs) return [];
+    
+    // Eğer backend veriyi parse edip dizi olarak gönderdiyse doğrudan döndür
+    if (Array.isArray(product.specs)) return product.specs;
+    
+    // Eğer bir şekilde string olarak geldiyse burada parse etmeyi dene
     try {
       const parsed = typeof product.specs === 'string' ? JSON.parse(product.specs) : product.specs;
+      if (Array.isArray(parsed)) return parsed;
       if (typeof parsed === 'object' && parsed !== null) {
+        // Çok dilli yapı ihtimaline karşı destek (örn: { tr: [], en: [] })
         const specList = parsed[language] || parsed['tr'] || [];
         return Array.isArray(specList) ? specList : [];
       }
-      if (Array.isArray(parsed)) return parsed;
-    } catch (e) {}
-    return Array.isArray(product.specs) ? product.specs : [];
+    } catch (e) {
+      console.error("Specs parsing error:", e);
+    }
+    return [];
   };
 
   const localizedSpecs = getLocalizedSpecs();

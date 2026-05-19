@@ -1,4 +1,4 @@
-const API_BASE: string = (import.meta as any).env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE: string = (import.meta as any).env.VITE_API_URL || 'https://metliapi.yusufaras.online';
 
 function getToken(): string | null {
   return sessionStorage.getItem('metli-token');

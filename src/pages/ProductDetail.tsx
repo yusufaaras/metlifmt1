@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
-import { useTranslatedProducts } from '@/hooks/useTranslatedData';
+import { useTranslatedProducts, resolveLocalizedText, resolveLocalizedSpecs } from '@/hooks/useTranslatedData';
 import { getImageUrl } from '@/services/api';
 
 const LOCAL_MAP: Record<string, string> = {
@@ -14,15 +14,8 @@ const LOCAL_MAP: Record<string, string> = {
 };
 
 // Güvenli çoklu dil metin yakalama fonksiyonu
-const getLocalizedText = (textValue: any, currentLang: string): string => {
-  if (!textValue) return '';
-  try {
-    const parsed = typeof textValue === 'string' ? JSON.parse(textValue) : textValue;
-    if (parsed && typeof parsed === 'object') {
-      return parsed[currentLang] || parsed['tr'] || Object.values(parsed)[0] || '';
-    }
-  } catch (e) {}
-  return String(textValue);
+const getLocalizedText = (textValue: any, currentLang: string = 'tr'): string => {
+  return resolveLocalizedText(textValue, currentLang);
 };
 
 export default function ProductDetail() {
@@ -62,30 +55,7 @@ export default function ProductDetail() {
   const localizedTitle = getLocalizedText(product.title, language);
   const localizedDescription = getLocalizedText(product.description, language);
 
-  // Teknik özellikleri (specs) güvenli bir şekilde çözme ve dizi haline getirme
-  // Teknik özellikleri (specs) güvenli bir şekilde çözme ve dizi haline getirme
-  const getLocalizedSpecs = (): string[] => {
-    if (!product.specs) return [];
-    
-    // Eğer backend veriyi parse edip dizi olarak gönderdiyse doğrudan döndür
-    if (Array.isArray(product.specs)) return product.specs;
-    
-    // Eğer bir şekilde string olarak geldiyse burada parse etmeyi dene
-    try {
-      const parsed = typeof product.specs === 'string' ? JSON.parse(product.specs) : product.specs;
-      if (Array.isArray(parsed)) return parsed;
-      if (typeof parsed === 'object' && parsed !== null) {
-        // Çok dilli yapı ihtimaline karşı destek (örn: { tr: [], en: [] })
-        const specList = parsed[language] || parsed['tr'] || [];
-        return Array.isArray(specList) ? specList : [];
-      }
-    } catch (e) {
-      console.error("Specs parsing error:", e);
-    }
-    return [];
-  };
-
-  const localizedSpecs = getLocalizedSpecs();
+  const localizedSpecs = resolveLocalizedSpecs(product.specs, language);
   const localImg = (id && LOCAL_MAP[id]) ? [`/images/${LOCAL_MAP[id]}`] : [];
   const images = (product as any).images && (product as any).images.length > 0 ? (product as any).images : localImg;
 

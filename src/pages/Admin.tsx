@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/context/LanguageContext';
-import { useTranslatedProducts } from '@/hooks/useTranslatedData';
+import { useTranslatedProducts, resolveLocalizedText } from '@/hooks/useTranslatedData';
 import { getImageUrl } from '@/services/api';
 import { useData, type Product, type BlogPost, type Multilang } from '@/context/DataContext';
 
@@ -18,17 +18,8 @@ const fallbackProductImages: Record<string, string> = {
 };
 
 // Çoklu dil JSON string yapısını güvenli bir şekilde çözen yardımcı fonksiyon
-const getLocalizedText = (textValue: any, currentLang: string): string => {
-  if (!textValue) return '';
-  try {
-    const parsed = typeof textValue === 'string' ? JSON.parse(textValue) : textValue;
-    if (parsed && typeof parsed === 'object') {
-      return parsed[currentLang] || parsed['tr'] || Object.values(parsed)[0] || '';
-    }
-  } catch (e) {
-    // JSON parse hatası alırsa düz metindir
-  }
-  return String(textValue);
+const getLocalizedText = (textValue: any, currentLang: string = 'tr'): string => {
+  return resolveLocalizedText(textValue, currentLang);
 };
 
 const LANGUAGES = [
@@ -45,12 +36,17 @@ function emptyMultilang(): Multilang {
 }
 
 function ensureMultilang(val: any): Multilang {
+  if (!val) return emptyMultilang();
   if (typeof val === 'string') {
-    try {
-      const parsed = JSON.parse(val);
-      if (typeof parsed === 'object' && parsed !== null) return { ...emptyMultilang(), ...parsed };
-    } catch (e) {
-      return { tr: val, en: val, es: val, ru: val };
+    const trimmed = val.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('"{')) {
+      try {
+        let parsed = JSON.parse(trimmed);
+        if (typeof parsed === 'string') {
+          try { parsed = JSON.parse(parsed); } catch {}
+        }
+        if (typeof parsed === 'object' && parsed !== null) return { ...emptyMultilang(), ...parsed };
+      } catch (e) {}
     }
     return { tr: val, en: val, es: val, ru: val };
   }

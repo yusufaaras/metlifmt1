@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/context/LanguageContext';
-import { useTranslatedProducts } from '@/hooks/useTranslatedData';
+import { useTranslatedProducts, resolveLocalizedText } from '@/hooks/useTranslatedData';
 import { getImageUrl } from '@/services/api';
 
 const fallbackProductImages: Record<string, string> = {
@@ -13,15 +13,8 @@ const fallbackProductImages: Record<string, string> = {
   '13': '/images/orchard-netting.jpg', '14': '/images/wooden-posts.jpg', '15': '/images/l-profile.jpg',
 };
 
-const getLocalizedText = (textValue: any, currentLang: string): string => {
-  if (!textValue) return '';
-  try {
-    const parsed = typeof textValue === 'string' ? JSON.parse(textValue) : textValue;
-    if (parsed && typeof parsed === 'object') {
-      return parsed[currentLang] || parsed['tr'] || Object.values(parsed)[0] || '';
-    }
-  } catch (e) {}
-  return String(textValue);
+const getLocalizedText = (textValue: any, currentLang: string = 'tr'): string => {
+  return resolveLocalizedText(textValue, currentLang);
 };
 
 export default function Products() {

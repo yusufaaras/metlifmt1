@@ -1,9 +1,8 @@
 import { useEffect, useRef, useCallback } from "react";
 
 export default function CustomCursor() {
-  const mousePos = useRef({ x: 0, y: 0 });
-  const dotPos = useRef({ x: 0, y: 0 });
-  const borderPos = useRef({ x: 0, y: 0 });
+  const mousePos = useRef({ x: -100, y: -100 });
+  const borderPos = useRef({ x: -100, y: -100 });
   const dotRef = useRef<HTMLDivElement>(null);
   const borderRef = useRef<HTMLDivElement>(null);
   const hovering = useRef(false);
@@ -11,23 +10,19 @@ export default function CustomCursor() {
   const visible = useRef(false);
 
   const animate = useCallback(() => {
-    const lerp = (a: number, b: number, f: number) => a + (b - a) * f;
-
-    // Dot follows at 0.55 speed — very close to real-time
-    dotPos.current.x = lerp(dotPos.current.x, mousePos.current.x, 0.55);
-    dotPos.current.y = lerp(dotPos.current.y, mousePos.current.y, 0.55);
-    // Border ring follows at 0.25 speed — slight trail
-    borderPos.current.x = lerp(borderPos.current.x, mousePos.current.x, 0.25);
-    borderPos.current.y = lerp(borderPos.current.y, mousePos.current.y, 0.25);
+    // Ring follows quickly with a snappy 0.65 lerp
+    borderPos.current.x += (mousePos.current.x - borderPos.current.x) * 0.65;
+    borderPos.current.y += (mousePos.current.y - borderPos.current.y) * 0.65;
 
     if (dotRef.current) {
-      dotRef.current.style.transform = `translate3d(${dotPos.current.x}px, ${dotPos.current.y}px, 0) translate(-50%, -50%)`;
+      dotRef.current.style.transform = `translate3d(${mousePos.current.x}px, ${mousePos.current.y}px, 0) translate(-50%, -50%)`;
     }
     if (borderRef.current) {
       borderRef.current.style.transform = `translate3d(${borderPos.current.x}px, ${borderPos.current.y}px, 0) translate(-50%, -50%)`;
-      const size = hovering.current ? 48 : 30;
+      const size = hovering.current ? 44 : 26;
       borderRef.current.style.width = `${size}px`;
       borderRef.current.style.height = `${size}px`;
+      borderRef.current.style.borderColor = hovering.current ? '#2E7D32' : 'rgba(46, 125, 50, 0.6)';
     }
 
     rafId.current = requestAnimationFrame(animate);
@@ -47,25 +42,28 @@ export default function CustomCursor() {
       mousePos.current.y = e.clientY;
       if (!visible.current) {
         visible.current = true;
-        dotPos.current = { x: e.clientX, y: e.clientY };
         borderPos.current = { x: e.clientX, y: e.clientY };
         if (dotRef.current) dotRef.current.style.opacity = '1';
         if (borderRef.current) borderRef.current.style.opacity = '1';
+      }
+      // Instant update for dot
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
       }
     };
 
     const onOver = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
-      if (el.closest("a, button, input, textarea, select, [role='button'], img")) hovering.current = true;
+      if (el.closest("a, button, input, textarea, select, [role='button'], img, .cursor-pointer")) hovering.current = true;
     };
     const onOut = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
-      if (el.closest("a, button, input, textarea, select, [role='button'], img")) hovering.current = false;
+      if (el.closest("a, button, input, textarea, select, [role='button'], img, .cursor-pointer")) hovering.current = false;
     };
 
-    window.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseover", onOver);
-    document.addEventListener("mouseout", onOut);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    document.addEventListener("mouseover", onOver, { passive: true });
+    document.addEventListener("mouseout", onOut, { passive: true });
     rafId.current = requestAnimationFrame(animate);
 
     return () => {
@@ -83,22 +81,25 @@ export default function CustomCursor() {
         ref={dotRef}
         style={{
           position: 'absolute', top: 0, left: 0,
-          width: 8, height: 8, borderRadius: '50%',
+          width: 6, height: 6, borderRadius: '50%',
           background: '#2E7D32',
           opacity: 0, willChange: 'transform',
+          pointerEvents: 'none',
         }}
       />
       <div
         ref={borderRef}
         style={{
           position: 'absolute', top: 0, left: 0,
-          width: 30, height: 30, borderRadius: '50%',
-          border: '2px solid #2E7D32',
+          width: 26, height: 26, borderRadius: '50%',
+          border: '1.5px solid rgba(46, 125, 50, 0.6)',
           opacity: 0,
-          transition: 'width 0.2s ease, height 0.2s ease',
-          willChange: 'transform',
+          transition: 'width 0.15s ease, height 0.15s ease, border-color 0.15s ease',
+          willChange: 'transform, width, height',
+          pointerEvents: 'none',
         }}
       />
     </div>
   );
 }
+

@@ -1,4 +1,18 @@
-const API_BASE: string = (import.meta as any).env.VITE_API_URL || 'https://metliapi.yusufaras.online';
+function getApiBaseUrl(): string {
+  const envUrl = (import.meta as any).env?.VITE_API_URL;
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocal) {
+      if (envUrl && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'))) {
+        return envUrl;
+      }
+      return 'http://localhost:3001';
+    }
+  }
+  return envUrl || 'https://metliapi.yusufaras.online';
+}
+
+const API_BASE: string = getApiBaseUrl();
 
 function getToken(): string | null {
   return sessionStorage.getItem('metli-token');
@@ -61,6 +75,8 @@ export interface ApiProduct {
   icon: string;
   specs: string[];
   images: string[];
+  is_featured?: number;
+  sort_order?: number;
 }
 
 export const getProducts = () => request<ApiProduct[]>('/api/products');
@@ -79,6 +95,16 @@ export async function updateProduct(id: number, formData: FormData) {
 }
 
 export const deleteProduct = (id: number) => request(`/api/products/${id}`, { method: 'DELETE' });
+
+// ═══ Site Sections / Settings ═══
+export const getSections = () => request<Record<string, any>>('/api/sections');
+export const getSection = <T = any>(key: string) => request<T>(`/api/sections/${key}`);
+export const updateSection = <T = any>(key: string, data: T) =>
+  request<{ success: boolean; key: string; data: T }>(`/api/sections/${key}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
 
 // ═══ Blog ═══
 export interface ApiBlog {
@@ -108,6 +134,31 @@ export async function updateBlogPost(id: number, formData: FormData) {
 
 export const deleteBlogPost = (id: number) => request(`/api/blog/${id}`, { method: 'DELETE' });
 
+// ═══ Upload Files (Images & Videos) ═══
+export async function uploadMediaFiles(files: File[]): Promise<string[]> {
+  if (!files || files.length === 0) return [];
+  const formData = new FormData();
+  for (const f of files) {
+    formData.append('files', f);
+  }
+  const token = getToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_BASE}/api/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Dosya yükleme hatası' }));
+    throw new Error(errorData.error || `Dosya yüklenemedi (${res.status})`);
+  }
+  const data = await res.json();
+  return data.urls || [];
+}
+
 // ═══ Admin Users ═══
 export interface ApiAdmin {
   id: number;
@@ -134,8 +185,11 @@ export const deleteAdminUser = (id: number) => request(`/api/admin/users/${id}`,
 // ═══ Utility ═══
 export function getImageUrl(path: string) {
   if (!path) return '';
-  if (path.startsWith('http') || path.startsWith('/images/')) return path;
-  return `${API_BASE}${path}`;
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) return path;
+  if (path.startsWith('/images/')) return path;
+  if (path.startsWith('/uploads/')) return `${API_BASE}${path}`;
+  if (path.startsWith('uploads/')) return `${API_BASE}/${path}`;
+  return `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
 export async function checkBackendAvailable(): Promise<boolean> {
@@ -146,3 +200,4 @@ export async function checkBackendAvailable(): Promise<boolean> {
     return false;
   }
 }
+

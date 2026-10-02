@@ -39,20 +39,36 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo Alanı */}
-          <Link to="/" className="flex items-center gap-3 group">
+          {/* Logo Alanı - METLİ & FMT Yan Yana */}
+          <Link
+            to="/"
+            onClick={() => {
+              if (location.pathname === '/') {
+                window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+              }
+            }}
+            className="flex items-center gap-3 group cursor-pointer"
+          >
             <img
               src="/images/metlilogo.svg"
-              alt="Metli Ticaret Logo"
+              alt="Metli Ticaret & FMT Makina"
               className="w-auto h-10 md:h-12 object-contain transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="hidden sm:block border-l border-gray-200 pl-3">
-              <p className="text-sm md:text-base font-bold text-secondary group-hover:text-primary transition-colors leading-tight uppercase">
-                METLİ
-              </p>
-              <p className="text-[10px] md:text-xs text-gray-500 font-medium">
-                Ticaret & FMT Makina
-              </p>
+            <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base md:text-lg font-black tracking-tight text-secondary group-hover:text-primary transition-colors">
+                  METLİ
+                </span>
+                <span className="text-xs md:text-sm font-bold text-gray-300">/</span>
+                <span className="text-base md:text-lg font-black tracking-tight text-primary group-hover:text-secondary transition-colors">
+                  FMT
+                </span>
+              </div>
+              <div className="hidden xl:block">
+                <span className="text-[10px] text-gray-500 font-medium block leading-none">
+                  Ticaret & Makina
+                </span>
+              </div>
             </div>
           </Link>
 

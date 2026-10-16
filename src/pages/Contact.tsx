@@ -1,20 +1,37 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/context/LanguageContext';
+import { useData } from '@/context/DataContext';
+import { resolveLocalizedText } from '@/hooks/useTranslatedData';
 
 const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
 const MailIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
 const MapIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
 
 export default function Contact() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { getSection } = useData();
   const [sent, setSent] = useState(false);
 
-  const people = [
-    { name: 'Bilal METLİ', phone: '0545 479 05 85', tel: '+905454790585' },
-    { name: 'Fatih METLİ', phone: '0531 345 73 04', tel: '+905313457304' },
-    { name: 'Abdullah METLİ', phone: '0535 616 49 41', tel: '+905356164941', role: t('contact.founder') },
-  ];
+  const footer = getSection('footer_settings', {});
+
+  const people = Array.isArray(footer.phones) && footer.phones.length > 0
+    ? footer.phones.map((p: any) => ({
+        name: p.label || 'METLİ',
+        phone: p.number || '',
+        tel: p.tel || (p.number ? `+90${p.number.replace(/\D/g, '')}` : '')
+      }))
+    : [
+        { name: 'Bilal METLİ', phone: '0545 479 05 85', tel: '+905454790585' },
+        { name: 'Fatih METLİ', phone: '0531 345 73 04', tel: '+905313457304' },
+        { name: 'Abdullah METLİ', phone: '0535 616 49 41', tel: '+905356164941', role: t('contact.founder') },
+      ];
+
+  const emails = Array.isArray(footer.emails) && footer.emails.length > 0
+    ? footer.emails
+    : ['metliticaret@hotmail.com', 'fatihmakinamuhendislik@hotmail.com'];
+
+  const addressText = resolveLocalizedText(footer.address, language, 'contact.addressText') || t('contact.addressText');
 
   return (
     <div className="pt-16 md:pt-20">
@@ -36,8 +53,8 @@ export default function Contact() {
             <div className="relative z-10">
               {/* Logo */}
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">MT</span>
+                <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 p-2 flex items-center justify-center">
+                  <img src="/images/metlilogo.svg" alt="METLİ" className="w-full h-full object-contain brightness-0 invert" />
                 </div>
                 <div>
                   <p className="font-bold text-lg">METLİ / FMT</p>
@@ -77,8 +94,9 @@ export default function Contact() {
                   <MailIcon />
                   <span>{t('contact.emailTitle')}</span>
                 </div>
-                <a href="mailto:metliticaret@hotmail.com" className="block text-sm text-white/70 hover:text-white transition-colors pl-8">metliticaret@hotmail.com</a>
-                <a href="mailto:fatihmakinamuhendislik@hotmail.com" className="block text-sm text-white/70 hover:text-white transition-colors pl-8">fatihmakinamuhendislik@hotmail.com</a>
+                {emails.map((em, i) => (
+                  <a key={i} href={`mailto:${em}`} className="block text-sm text-white/70 hover:text-white transition-colors pl-8">{em}</a>
+                ))}
               </div>
 
               {/* Address */}
@@ -87,7 +105,7 @@ export default function Contact() {
                   <MapIcon />
                   <span>{t('contact.address')}</span>
                 </div>
-                <p className="text-sm text-white/70 pl-8">{t('contact.addressText')}</p>
+                <p className="text-sm text-white/70 pl-8">{addressText}</p>
                 <div className="pl-8 flex flex-col gap-1">
                   <a href="https://maps.app.goo.gl/PbuxSpu5UxDBnfwv9" target="_blank" rel="noopener noreferrer" className="text-xs text-primary-light hover:text-white transition-colors">{t('contact.mapLocation1')} ↗</a>
                   <a href="https://maps.app.goo.gl/W5WcPw5HG1e18rq2A" target="_blank" rel="noopener noreferrer" className="text-xs text-primary-light hover:text-white transition-colors">{t('contact.mapLocation2')} ↗</a>

@@ -29,12 +29,27 @@ function ensureMultilang(val: any): Multilang {
         if (typeof parsed === 'string') {
           try { parsed = JSON.parse(parsed); } catch {}
         }
-        if (typeof parsed === 'object' && parsed !== null) return { ...emptyMultilang(), ...parsed };
+        if (typeof parsed === 'object' && parsed !== null) {
+          return {
+            tr: parsed.tr || '',
+            en: parsed.en || '',
+            es: parsed.es || '',
+            ru: parsed.ru || '',
+          };
+        }
       } catch (e) {}
     }
-    return { tr: val, en: val, es: val, ru: val };
+    return { tr: val, en: '', es: '', ru: '' };
   }
-  if (typeof val === 'object' && val !== null) return { ...emptyMultilang(), ...val };
+  if (typeof val === 'object' && val !== null) {
+    const target = val.name || val.title || val.text || val;
+    return {
+      tr: target.tr || (typeof target === 'string' ? target : ''),
+      en: target.en || '',
+      es: target.es || '',
+      ru: target.ru || '',
+    };
+  }
   return emptyMultilang();
 }
 
@@ -60,7 +75,7 @@ function LangSelector({ activeLang, onChange }: { activeLang: LangCode; onChange
 }
 
 // ===== LOGIN =====
-function AdminLogin({ onLogin }: { onLogin: (u: string, p: string) => boolean }) {
+function AdminLogin({ onLogin }: { onLogin?: (u: string, p: string) => Promise<boolean> }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -73,17 +88,21 @@ function AdminLogin({ onLogin }: { onLogin: (u: string, p: string) => boolean })
     setError('');
 
     try {
-      const result = await api.login(username, password);
-      if (result) {
-        window.location.href = '/admin';
-        return;
+      if (onLogin) {
+        const success = await onLogin(username.trim(), password);
+        if (success) {
+          return;
+        }
+      } else {
+        const result = await api.login(username.trim(), password);
+        if (result && result.token) {
+          window.location.href = '/admin';
+          return;
+        }
       }
+      setError('Geçersiz kullanıcı adı veya şifre.');
     } catch (err: any) {
-      if (onLogin(username, password)) {
-        window.location.href = '/admin';
-        return;
-      }
-      setError('Hatalı kullanıcı adı veya şifre');
+      setError(err?.message || 'Hatalı kullanıcı adı veya şifre.');
     } finally {
       setLoading(false);
     }
@@ -93,8 +112,8 @@ function AdminLogin({ onLogin }: { onLogin: (u: string, p: string) => boolean })
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
-            <span className="text-white font-black text-xl tracking-wider">METLİ</span>
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-white p-2 flex items-center justify-center mb-4 shadow-lg border border-gray-100">
+            <img src="/images/metlilogo.svg" alt="METLİ" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-secondary-dark">Admin Yönetim Paneli</h1>
           <p className="text-xs text-gray-500 mt-1 font-medium">METLİ Ticaret & FMT Makina</p>
@@ -495,6 +514,7 @@ function HomeEditor() {
       await updateSectionData('home_why_us', whyUs);
       await updateSectionData('home_cta', {
         title: ctaTitle,
+        desc: ctaDesc,
         description: ctaDesc,
         buttonText: ctaButtonText,
         buttonLink: ctaButtonLink,
@@ -1024,22 +1044,33 @@ function AboutEditor() {
   const [heroSubtitle, setHeroSubtitle] = useState<Multilang>(ensureMultilang(aboutData.heroSubtitle));
   const [historyBadge, setHistoryBadge] = useState<Multilang>(ensureMultilang(aboutData.historyBadge));
   const [historyTitle, setHistoryTitle] = useState<Multilang>(ensureMultilang(aboutData.historyTitle));
-  const [historyP1, setHistoryP1] = useState<Multilang>(ensureMultilang(aboutData.historyP1));
-  const [historyP2, setHistoryP2] = useState<Multilang>(ensureMultilang(aboutData.historyP2));
+  const [historyP1, setHistoryP1] = useState<Multilang>(ensureMultilang(aboutData.historyP1 || aboutData.texts?.[0]));
+  const [historyP2, setHistoryP2] = useState<Multilang>(ensureMultilang(aboutData.historyP2 || aboutData.texts?.[1]));
   const [factoryTitle, setFactoryTitle] = useState<Multilang>(ensureMultilang(aboutData.factoryTitle));
   const [factoryDesc, setFactoryDesc] = useState<Multilang>(ensureMultilang(aboutData.factoryDesc));
   const [factoryLocation, setFactoryLocation] = useState<Multilang>(ensureMultilang(aboutData.factoryLocation));
   const [factoryImage, setFactoryImage] = useState(aboutData.factoryImage || '/images/factory.jpg');
   const [visionTitle, setVisionTitle] = useState<Multilang>(ensureMultilang(aboutData.visionTitle));
   const [visionQuote, setVisionQuote] = useState<Multilang>(ensureMultilang(aboutData.visionQuote));
-  const [bottomQuote, setBottomQuote] = useState<Multilang>(ensureMultilang(aboutData.bottomQuote));
+  const [visionDesc, setVisionDesc] = useState<Multilang>(ensureMultilang(aboutData.visionDesc));
+  const [bottomQuote, setBottomQuote] = useState<Multilang>(ensureMultilang(aboutData.bottomQuote || aboutData.finalQuote));
 
-  const [milestones, setMilestones] = useState<any[]>(Array.isArray(aboutData.milestones) ? aboutData.milestones : []);
+  const [milestones, setMilestones] = useState<any[]>(() => {
+    const list = Array.isArray(aboutData.milestones) && aboutData.milestones.length > 0
+      ? aboutData.milestones
+      : (Array.isArray(aboutData.timeline) ? aboutData.timeline : []);
+    return list.map(m => ({
+      year: m.year || '2024',
+      title: ensureMultilang(m.title),
+      desc: ensureMultilang(m.desc)
+    }));
+  });
   const [certificates, setCertificates] = useState<any[]>(Array.isArray(aboutData.certificates) ? aboutData.certificates : []);
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      const textsList = [historyP1, historyP2].filter(t => t.tr || t.en || t.es || t.ru);
       await updateSectionData('about_page', {
         heroTitle,
         heroSubtitle,
@@ -1047,14 +1078,18 @@ function AboutEditor() {
         historyTitle,
         historyP1,
         historyP2,
+        texts: textsList.length > 0 ? textsList : [historyP1, historyP2],
         factoryTitle,
         factoryDesc,
         factoryLocation,
         factoryImage,
         visionTitle,
         visionQuote,
+        visionDesc,
         bottomQuote,
+        finalQuote: bottomQuote,
         milestones,
+        timeline: milestones,
         certificates,
       });
       setSavedMsg('Hakkımızda sayfası başarıyla kaydedildi!');
@@ -1217,6 +1252,16 @@ function AboutEditor() {
             value={visionQuote[activeLang]}
             onChange={e => setVisionQuote({ ...visionQuote, [activeLang]: e.target.value })}
             rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none resize-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Vizyon Açıklaması ({activeLang.toUpperCase()})</label>
+          <textarea
+            value={visionDesc[activeLang]}
+            onChange={e => setVisionDesc({ ...visionDesc, [activeLang]: e.target.value })}
+            rows={2}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none resize-none"
           />
         </div>
@@ -2323,12 +2368,43 @@ function ServicesEditor() {
   const [savedMsg, setSavedMsg] = useState('');
 
   const servicesData = getSection('services_marquee') || [];
-  const [items, setItems] = useState<any[]>(Array.isArray(servicesData) ? servicesData : []);
+  const defaultIcons = ['🏛️', '🌱', '🛡️', '🏗️', '🪵', '☀️', '🏭', '🛣️'];
+
+  const [items, setItems] = useState<any[]>(() => {
+    const list = Array.isArray(servicesData) ? servicesData : [];
+    return list.map((item, idx) => {
+      const fallbackIcon = defaultIcons[idx % defaultIcons.length];
+      if (!item) return { icon: fallbackIcon, name: emptyMultilang() };
+      if (typeof item === 'string') {
+        return { icon: fallbackIcon, name: { tr: item, en: '', es: '', ru: '' } };
+      }
+      if (item.name) {
+        return {
+          icon: item.icon || fallbackIcon,
+          name: ensureMultilang(item.name)
+        };
+      }
+      // If item has direct language keys (like in MySQL default: { tr, en, es, ru })
+      const { icon, ...rest } = item;
+      return {
+        icon: icon || fallbackIcon,
+        name: ensureMultilang(rest)
+      };
+    });
+  });
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateSectionData('services_marquee', items);
+      const formatted = items.map(item => ({
+        icon: item.icon || '🏛️',
+        name: item.name || emptyMultilang(),
+        tr: item.name?.tr || '',
+        en: item.name?.en || '',
+        es: item.name?.es || '',
+        ru: item.name?.ru || ''
+      }));
+      await updateSectionData('services_marquee', formatted);
       setSavedMsg('Hizmet alanları başarıyla kaydedildi!');
       setTimeout(() => setSavedMsg(''), 4000);
     } catch (e) {
@@ -2389,7 +2465,7 @@ function ServicesEditor() {
               />
               <input
                 type="text"
-                value={item.name?.[activeLang] || (typeof item.name === 'string' ? item.name : '')}
+                value={item.name?.[activeLang] || ''}
                 onChange={e => {
                   const copy = [...items];
                   const cur = ensureMultilang(copy[idx].name);
@@ -2733,6 +2809,17 @@ export default function Admin() {
   const [editingUserPass, setEditingUserPass] = useState<{ id: string; name: string } | null>(null);
   const [newPass, setNewPass] = useState('');
 
+  if (data.isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm font-semibold text-gray-600">Oturum kontrol ediliyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!data.isLoggedIn) {
     return <AdminLogin onLogin={data.login} />;
   }
@@ -2822,17 +2909,20 @@ export default function Admin() {
         <div>
           {/* Logo Badge */}
           <div className="p-5 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 bg-white/10 px-3 py-2 rounded-xl backdrop-blur-sm border border-white/10">
-                <span className="font-black text-primary tracking-wider text-sm">METLİ</span>
-                <span className="text-white/40 text-xs">|</span>
-                <span className="font-black text-accent tracking-wider text-xs">FMT</span>
+            <a href="/admin" className="flex items-center gap-3 group">
+              <div className="bg-white p-1.5 rounded-xl shadow-md flex items-center justify-center shrink-0">
+                <img src="/images/metlilogo.svg" alt="METLİ" className="h-9 w-auto object-contain" />
               </div>
               <div className="overflow-hidden">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-primary tracking-wider text-sm">METLİ</span>
+                  <span className="text-white/40 text-xs">|</span>
+                  <span className="font-black text-accent tracking-wider text-xs">FMT</span>
+                </div>
                 <p className="font-bold text-xs text-white truncate">Yönetim Paneli</p>
                 <p className="text-[11px] text-gray-400 truncate">{data.currentUser?.name}</p>
               </div>
-            </div>
+            </a>
           </div>
 
           {/* Navigation Links */}
@@ -2872,11 +2962,11 @@ export default function Admin() {
           </a>
           <button
             onClick={() => {
-              if (data.logout) data.logout();
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              sessionStorage.clear();
-              window.location.href = '/';
+              if (data.logout) {
+                data.logout();
+              } else {
+                api.logout();
+              }
             }}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-300 hover:bg-red-500/20 transition-all"
           >
@@ -2898,11 +2988,14 @@ export default function Admin() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <div>
-              <h1 className="text-base font-bold text-secondary-dark capitalize">
-                {navSections.flatMap(g => g.items).find(t => t.key === activeTab)?.label}
-              </h1>
-              <p className="text-[11px] text-gray-400">Veritabanı MySQL senkronizasyonu aktif</p>
+            <div className="flex items-center gap-2.5">
+              <img src="/images/metlilogo.svg" alt="METLİ" className="h-7 w-auto object-contain lg:hidden" />
+              <div>
+                <h1 className="text-base font-bold text-secondary-dark capitalize">
+                  {navSections.flatMap(g => g.items).find(t => t.key === activeTab)?.label}
+                </h1>
+                <p className="text-[11px] text-gray-400">Veritabanı MySQL senkronizasyonu aktif</p>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">

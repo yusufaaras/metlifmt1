@@ -99,16 +99,17 @@ export default function Home() {
   });
 
   // Featured Products (is_featured !== 0 or first 6)
-  const featured = products
+  const translatedProducts = useTranslatedProducts();
+  const featured = translatedProducts
     .filter(p => (p as any).is_featured === undefined || (p as any).is_featured !== 0)
     .slice(0, 6);
 
-  const heroTitle = resolveLocalizedText(heroSection.title, language) || t('hero.title');
-  const heroSubtitle = resolveLocalizedText(heroSection.subtitle, language) || t('hero.subtitle');
-  const heroSlogan = resolveLocalizedText(heroSection.slogan, language) || t('hero.slogan');
-  const heroCtaPrimary = resolveLocalizedText(heroSection.ctaPrimaryText, language) || t('hero.cta');
-  const heroCtaSecondary = resolveLocalizedText(heroSection.ctaSecondaryText, language) || t('home.ctaButton');
-  const heroBadge = resolveLocalizedText(heroSection.experienceBadge, language) || '50+ ' + t('home.experience');
+  const heroTitle = resolveLocalizedText(heroSection.title, language, 'hero.title') || t('hero.title');
+  const heroSubtitle = resolveLocalizedText(heroSection.subtitle, language, 'hero.subtitle') || t('hero.subtitle');
+  const heroSlogan = resolveLocalizedText(heroSection.slogan, language, 'hero.slogan') || t('hero.slogan');
+  const heroCtaPrimary = resolveLocalizedText(heroSection.ctaPrimaryText, language, 'hero.cta') || t('hero.cta');
+  const heroCtaSecondary = resolveLocalizedText(heroSection.ctaSecondaryText, language, 'home.ctaButton') || t('home.ctaButton');
+  const heroBadge = resolveLocalizedText(heroSection.experienceBadge, language, 'home.experience') || '50+ ' + t('home.experience');
 
   return (
     <div>
@@ -176,7 +177,7 @@ export default function Home() {
           <motion.div
             className="flex items-center py-4 whitespace-nowrap"
             animate={{ x: ['0%', '-33.33%'] }}
-            transition={{ ease: 'linear', duration: 20, repeat: Infinity }}
+            transition={{ ease: 'linear', duration: 12, repeat: Infinity }}
           >
             {statsDup.map((s, i) => (
               <div key={i} className="flex items-center gap-3 px-8 md:px-12 flex-shrink-0">
@@ -285,11 +286,11 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary-dark/90 to-secondary-dark/90" />
         <div className="relative max-w-3xl mx-auto px-4 text-center text-white">
           <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-2xl md:text-3xl font-bold font-heading mb-4">{resolveLocalizedText(homeCta.title, language) || t('home.ctaTitle')}</h2>
-            <p className="text-sm text-white/80 mb-6 max-w-xl mx-auto">{resolveLocalizedText(homeCta.desc, language) || t('home.ctaDesc')}</p>
+            <h2 className="text-2xl md:text-3xl font-bold font-heading mb-4">{resolveLocalizedText(homeCta.title, language, 'home.ctaTitle') || t('home.ctaTitle')}</h2>
+            <p className="text-sm text-white/80 mb-6 max-w-xl mx-auto">{resolveLocalizedText(homeCta.desc || homeCta.description, language, 'home.ctaDesc') || t('home.ctaDesc')}</p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link to="/contact" className="px-7 py-2.5 bg-white text-primary rounded-full text-sm font-bold hover:bg-gray-100 transition-all shadow">
-                {resolveLocalizedText(homeCta.buttonText, language) || t('home.ctaButton')}
+                {resolveLocalizedText(homeCta.buttonText, language, 'home.ctaButton') || t('home.ctaButton')}
               </Link>
               <a href={`tel:${(homeCta.phone || '0545 479 05 85').replace(/\s+/g, '')}`} className="px-7 py-2.5 border-2 border-white text-white rounded-full text-sm font-bold hover:bg-white/10 transition-all">
                 {homeCta.phone || '0545 479 05 85'}

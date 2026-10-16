@@ -29,8 +29,13 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     headers: { ...options?.headers, ...authHeaders() },
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || 'Request failed');
+    if (res.status === 401) {
+      sessionStorage.removeItem('metli-token');
+      sessionStorage.removeItem('metli-user');
+      sessionStorage.removeItem('metli-auth');
+    }
+    const err = await res.json().catch(() => ({ error: 'İşlem başarısız' }));
+    throw new Error(err.error || 'İşlem başarısız');
   }
   return res.json();
 }
@@ -42,6 +47,9 @@ export async function login(username: string, password: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
+  if (!data || !data.token) {
+    throw new Error('Token alınamadı, giriş başarısız.');
+  }
   localStorage.clear(); // Giriş yaparken eski kalıntıları temizle
   sessionStorage.clear();
   sessionStorage.setItem('metli-token', data.token);
@@ -49,12 +57,31 @@ export async function login(username: string, password: string) {
   return data;
 }
 
+export async function verifyToken(): Promise<{ id: number; username: string; name: string } | null> {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const data = await request<{ user: { id: number; username: string; name: string } }>('/api/auth/me');
+    if (data && data.user) {
+      sessionStorage.setItem('metli-user', JSON.stringify(data.user));
+      return data.user;
+    }
+    return null;
+  } catch {
+    sessionStorage.removeItem('metli-token');
+    sessionStorage.removeItem('metli-user');
+    sessionStorage.removeItem('metli-auth');
+    return null;
+  }
+}
+
 export function logout() {
   sessionStorage.removeItem('metli-token');
   sessionStorage.removeItem('metli-user');
+  sessionStorage.removeItem('metli-auth');
   sessionStorage.clear();
   localStorage.clear(); // Ne olur ne olmaz her yeri temizlesin
-  window.location.href = '/'; // Sayfayı kökten sıfırlayarak yönlendir
+  window.location.href = '/admin'; // Admin sayfasına yönlendir (login durumunda kalır)
 }
 
 export function getCurrentUser() {

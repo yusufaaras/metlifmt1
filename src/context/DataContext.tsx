@@ -295,8 +295,9 @@ interface DataContextType {
   addAdminUser: (user: Omit<AdminUser, 'id'>) => void;
   deleteAdminUser: (id: string) => void;
   isLoggedIn: boolean;
+  isAuthLoading: boolean;
   currentUser: AdminUser | null;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   refreshAllData: () => Promise<void>;
 }
@@ -328,7 +329,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => loadFromStorage('metli-admins', defaultAdminUsers));
   const [sections, setSections] = useState<Record<string, any>>(() => loadFromStorage('metli-sections', defaultSectionsData));
 
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('metli-auth') || !!sessionStorage.getItem('metli-token'));
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => !!sessionStorage.getItem('metli-token'));
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(() => !!sessionStorage.getItem('metli-token'));
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => {
     const saved = sessionStorage.getItem('metli-user');
     return saved ? JSON.parse(saved) : null;
@@ -364,9 +366,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    const token = sessionStorage.getItem('metli-token');
+    if (token) {
+      api.verifyToken()
+        .then((user) => {
+          if (user) {
+            setIsLoggedIn(true);
+            setCurrentUser(user as any);
+          } else {
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+          }
+        })
+        .catch(() => {
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        })
+        .finally(() => {
+          setIsAuthLoading(false);
+        });
+    } else {
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      setIsAuthLoading(false);
+    }
     refreshAllData();
-    const hasAuth = !!sessionStorage.getItem('metli-auth') || !!sessionStorage.getItem('metli-token');
-    if (hasAuth !== isLoggedIn) setIsLoggedIn(hasAuth);
   }, []);
 
   const getSection = <T = any>(key: string, fallback?: T): T => {
@@ -414,23 +438,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   const deleteAdminUser = (id: string) => saveAdmins(adminUsers.filter(u => u.id !== id));
 
-  const login = (username: string, password: string): boolean => {
-    const user = adminUsers.find(u => u.username === username);
-    if (user) {
-      setIsLoggedIn(true);
-      setCurrentUser(user);
-      sessionStorage.setItem('metli-auth', 'true');
-      sessionStorage.setItem('metli-user', JSON.stringify(user));
-      return true;
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const res = await api.login(username, password);
+      if (res && res.token) {
+        setIsLoggedIn(true);
+        setCurrentUser(res.user as any);
+        return true;
+      }
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      return false;
+    } catch (e) {
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      throw e;
     }
-    return false;
   };
 
   const logout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
-    sessionStorage.removeItem('metli-auth');
-    sessionStorage.removeItem('metli-user');
+    api.logout();
   };
 
   return (
@@ -440,7 +469,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addProduct, updateProduct, deleteProduct,
       addBlogPost, updateBlogPost, deleteBlogPost,
       addAdminUser, deleteAdminUser,
-      isLoggedIn, currentUser, login, logout,
+      isLoggedIn, isAuthLoading, currentUser, login, logout,
     }}>
       {children}
     </DataContext.Provider>

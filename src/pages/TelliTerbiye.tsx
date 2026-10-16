@@ -68,9 +68,9 @@ export default function TelliTerbiye() {
     ]
   });
 
-  const heroTitle = resolveLocalizedText(telli.heroTitle, language) || t('telli.title');
-  const heroSubtitle = resolveLocalizedText(telli.heroSubtitle, language) || t('telli.subtitle');
-  const desc = resolveLocalizedText(telli.desc, language) || t('telli.desc');
+  const heroTitle = resolveLocalizedText(telli.heroTitle, language, 'telli.title') || t('telli.title');
+  const heroSubtitle = resolveLocalizedText(telli.heroSubtitle, language, 'telli.subtitle') || t('telli.subtitle');
+  const desc = resolveLocalizedText(telli.desc || telli.mainDesc, language, 'telli.desc') || t('telli.desc');
 
   const benefits = Array.isArray(telli.benefits) ? telli.benefits.map((b: any) => ({
     icon: b.icon || '🌱',
@@ -102,9 +102,9 @@ export default function TelliTerbiye() {
   const heroImage = telli.heroImage ? getImageUrl(telli.heroImage) : '/images/trellis-system.jpg';
   const mainDesc2 = resolveLocalizedText(telli.mainDesc2 || telli.desc2, language);
   const mainTitle = resolveLocalizedText(telli.mainTitle, language) || heroTitle;
-  const ctaTitle = resolveLocalizedText(telli.ctaTitle, language) || t('telli.ctaTitle');
-  const ctaDesc = resolveLocalizedText(telli.ctaDesc, language) || t('telli.ctaDesc');
-  const ctaButtonText = resolveLocalizedText(telli.ctaButtonText, language) || t('telli.ctaButton');
+  const ctaTitle = resolveLocalizedText(telli.ctaTitle, language, 'telli.ctaTitle') || t('telli.ctaTitle');
+  const ctaDesc = resolveLocalizedText(telli.ctaDesc, language, 'telli.ctaDesc') || t('telli.ctaDesc');
+  const ctaButtonText = resolveLocalizedText(telli.ctaButtonText, language, 'telli.ctaButton') || t('telli.ctaButton');
   const ctaPhone = telli.ctaPhone || telli.phone || '0545 479 05 85';
 
   return (

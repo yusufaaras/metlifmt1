@@ -437,6 +437,18 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.get('/api/auth/me', auth, async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT id, username, name FROM admin_users WHERE id = ?', [req.user.id]);
+    if (rows.length === 0) return res.status(401).json({ error: 'Kullanıcı bulunamadı' });
+    res.json({ user: rows[0] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/auth/verify', auth, (req, res) => {
+  res.json({ valid: true, user: req.user });
+});
+
 // ═══ ADMIN USER ROUTES ═══
 app.get('/api/admin/users', auth, async (req, res) => {
   try {

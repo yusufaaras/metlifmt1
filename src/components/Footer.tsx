@@ -38,8 +38,8 @@ export default function Footer() {
     legalCompany: 'FMT Makina Mühendislik İth. İhr. San. Tic. Ltd. Şti.'
   });
 
-  const aboutText = resolveLocalizedText(footer.aboutText, language) || t('footer.desc');
-  const addressText = resolveLocalizedText(footer.address, language) || t('footer.address');
+  const aboutText = resolveLocalizedText(footer.aboutText, language, 'footer.desc') || t('footer.desc');
+  const addressText = resolveLocalizedText(footer.address, language, 'footer.address') || t('footer.address');
 
   return (
     <footer className="bg-secondary-dark text-white">
@@ -78,19 +78,31 @@ export default function Footer() {
             <h4 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary-light">{t('footer.quickLinks')}</h4>
             <ul className="space-y-2">
               {(footer.quickLinks || [
-                { to: '/', label: { tr: 'Ana Sayfa' } },
-                { to: '/about', label: { tr: 'Hakkımızda' } },
-                { to: '/products', label: { tr: 'Ürünlerimiz' } },
-                { to: '/telli-terbiye', label: { tr: 'Telli Terbiye Sistemi' } },
-                { to: '/blog', label: { tr: 'Haberler & Projeler' } },
-                { to: '/contact', label: { tr: 'İletişim' } },
-              ]).map((link: any, idx: number) => (
-                <li key={idx}>
-                  <Link to={link.to} className="text-sm text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">
-                    {resolveLocalizedText(link.label, language) || link.to}
-                  </Link>
-                </li>
-              ))}
+                { to: '/', label: { tr: 'Ana Sayfa', en: 'Home', es: 'Inicio', ru: 'Главная' } },
+                { to: '/about', label: { tr: 'Hakkımızda', en: 'About Us', es: 'Sobre Nosotros', ru: 'О нас' } },
+                { to: '/products', label: { tr: 'Ürünlerimiz', en: 'Products', es: 'Productos', ru: 'Продукты' } },
+                { to: '/telli-terbiye', label: { tr: 'Telli Terbiye Sistemi', en: 'Trellis System', es: 'Sistema de Espaldera', ru: 'Шпалерная система' } },
+                { to: '/blog', label: { tr: 'Haberler & Projeler', en: 'News & Projects', es: 'Noticias y Proyectos', ru: 'Новости и Проекты' } },
+                { to: '/contact', label: { tr: 'İletişim', en: 'Contact', es: 'Contacto', ru: 'Контакты' } },
+              ]).map((link: any, idx: number) => {
+                const routeKeyMap: Record<string, string> = {
+                  '/': 'nav.home',
+                  '/about': 'nav.about',
+                  '/products': 'nav.products',
+                  '/telli-terbiye': 'nav.telli',
+                  '/blog': 'nav.blog',
+                  '/contact': 'nav.contact'
+                };
+                const fallbackKey = routeKeyMap[link.to] || '';
+                const label = resolveLocalizedText(link.label, language, fallbackKey) || (fallbackKey ? t(fallbackKey) : link.to);
+                return (
+                  <li key={idx}>
+                    <Link to={link.to} className="text-sm text-gray-400 hover:text-white hover:pl-1 transition-all duration-300">
+                      {label}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 

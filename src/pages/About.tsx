@@ -40,16 +40,24 @@ export default function About() {
     finalQuote: { tr: 'Yarım asırlık tecrübemiz, güçlü üretim altyapımız ve uzman kadromuzla geleceği inşa ediyoruz.' }
   });
 
-  const heroTitle = resolveLocalizedText(about.heroTitle, language) || t('about.title');
-  const heroSubtitle = resolveLocalizedText(about.heroSubtitle, language) || t('about.subtitle');
+  const heroTitle = resolveLocalizedText(about.heroTitle, language, 'about.title') || t('about.title');
+  const heroSubtitle = resolveLocalizedText(about.heroSubtitle, language, 'about.subtitle') || t('about.subtitle');
 
-  const texts = Array.isArray(about.texts) ? about.texts.map((item: any) => resolveLocalizedText(item, language)) : [];
+  const rawTexts = Array.isArray(about.texts) && about.texts.length > 0
+    ? about.texts
+    : [about.historyP1, about.historyP2].filter(Boolean);
 
-  const timeline = Array.isArray(about.timeline) ? about.timeline.map((item: any) => ({
+  const texts = rawTexts.map((item: any) => resolveLocalizedText(item, language)).filter(Boolean);
+
+  const rawTimeline = Array.isArray(about.timeline) && about.timeline.length > 0
+    ? about.timeline
+    : (Array.isArray(about.milestones) ? about.milestones : []);
+
+  const timeline = rawTimeline.map((item: any) => ({
     year: item.year,
     title: resolveLocalizedText(item.title, language),
     desc: resolveLocalizedText(item.desc, language),
-  })) : [];
+  }));
 
   const certificates = Array.isArray(about.certificates) ? about.certificates.map((c: any) => ({
     name: c.name,
@@ -90,18 +98,18 @@ export default function About() {
             <div className="rounded-xl overflow-hidden shadow-md">
               <img src={getImageUrl(about.factoryImage || '/images/factory.jpg')} alt="" className="w-full h-48 object-cover" />
               <div className="bg-primary/5 p-4 border border-primary/10">
-                <h4 className="font-bold text-sm text-secondary-dark">{resolveLocalizedText(about.factoryTitle, language) || t('about.factoryTitle')}</h4>
-                <p className="text-xs text-gray-500 mt-1">{resolveLocalizedText(about.factoryDesc, language) || t('about.factoryDesc')}</p>
+                <h4 className="font-bold text-sm text-secondary-dark">{resolveLocalizedText(about.factoryTitle, language, 'about.factoryTitle') || t('about.factoryTitle')}</h4>
+                <p className="text-xs text-gray-500 mt-1">{resolveLocalizedText(about.factoryDesc, language, 'about.factoryDesc') || t('about.factoryDesc')}</p>
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-xl p-5 border border-primary/10">
-              <h3 className="text-sm font-bold text-secondary-dark mb-2">{resolveLocalizedText(about.visionTitle, language) || t('about.visionTitle')}</h3>
+              <h3 className="text-sm font-bold text-secondary-dark mb-2">{resolveLocalizedText(about.visionTitle, language, 'about.visionTitle') || t('about.visionTitle')}</h3>
               <p className="text-xs text-gray-600 italic border-l-2 border-primary pl-3 leading-relaxed">
-                "{resolveLocalizedText(about.visionQuote, language) || t('about.visionQuote')}"
+                "{resolveLocalizedText(about.visionQuote, language, 'about.visionQuote') || t('about.visionQuote')}"
               </p>
               <p className="text-xs text-gray-600 mt-3 leading-relaxed">
-                {resolveLocalizedText(about.visionDesc, language) || t('about.visionDesc')}
+                {resolveLocalizedText(about.visionDesc, language, 'about.visionDesc') || t('about.visionDesc')}
               </p>
             </div>
 
@@ -187,7 +195,7 @@ export default function About() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary-dark/90 to-secondary-dark/90" />
         <div className="relative max-w-2xl mx-auto px-4 text-center text-white">
           <p className="text-base md:text-lg font-heading italic leading-relaxed">
-            "{resolveLocalizedText(about.finalQuote, language) || t('about.finalQuote')}"
+            "{resolveLocalizedText(about.finalQuote || about.bottomQuote, language, 'about.finalQuote') || t('about.finalQuote')}"
           </p>
           <p className="mt-3 text-white/50 text-xs">— FMT Makina Mühendislik & METLİ Ticaret</p>
         </div>

@@ -2,8 +2,10 @@ import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useData } from '@/context/DataContext';
 import { useTranslatedProducts, resolveLocalizedText, resolveLocalizedSpecs } from '@/hooks/useTranslatedData';
 import { getImageUrl } from '@/services/api';
+import { formatTelLink, formatWhatsAppLink } from '@/utils/phone';
 
 const LOCAL_MAP: Record<string, string> = {
   '1': 'barbed-wire.jpg', '2': 'fence-wire.jpg', '3': 'wooden-posts.jpg',
@@ -21,6 +23,10 @@ const getLocalizedText = (textValue: any, currentLang: string = 'tr'): string =>
 export default function ProductDetail() {
   const { id } = useParams();
   const { t, language } = useLanguage();
+  const { getSection } = useData();
+  const footer = getSection('footer_settings', {});
+  const primaryPhone = footer.phones?.[0]?.number || footer.phones?.[0]?.tel || '0545 479 05 85';
+  const primaryWa = footer.phones?.[0]?.whatsapp || primaryPhone;
   const products = useTranslatedProducts();
   const product = products.find(p => p.id === String(id));
   const [activeImg, setActiveImg] = useState(0);
@@ -114,7 +120,26 @@ export default function ProductDetail() {
               )}
               <div className="mt-auto pt-8 border-t border-gray-100 flex flex-wrap gap-4">
                 <Link to="/contact" className="px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg hover:bg-primary-dark hover:scale-[1.02] active:scale-95 transition-all flex-1 text-center">{t('telli.ctaButton')}</Link>
-                <a href="tel:+905454790585" className="p-4 bg-gray-50 text-secondary-dark rounded-2xl border border-gray-200 hover:bg-gray-100 transition-all flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></a>
+                <a
+                  href={formatTelLink(primaryPhone)}
+                  title="Hemen Ara"
+                  className="p-4 bg-gray-50 text-secondary-dark rounded-2xl border border-gray-200 hover:bg-gray-100 transition-all flex items-center justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                </a>
+                <a
+                  href={formatWhatsAppLink(primaryWa, `Merhaba, "${title}" ürünü hakkında bilgi ve fiyat teklifi almak istiyorum.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="WhatsApp'tan Yaz"
+                  className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-200 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center"
+                >
+                  <svg className="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.587 1.961.954 2.801.954l.003-.001c3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.586-5.766-5.776-5.766zm-12.031 5.766c0 6.627 5.373 12 12 12 6.627 0 12-5.373 12-12s-5.373-12-12-12c-6.627 0-12 5.373-12 12zm18 0c0 3.309-2.691 6-6 6-.975 0-1.895-.233-2.709-.646l-4.291 1.124 1.144-4.184c-.454-.834-.712-1.787-.712-2.801 0-3.309 2.691-6 6-6s6 2.691 6 6z"/>
+                  </svg>
+                </a>
               </div>
             </motion.div>
           </div>

@@ -223,9 +223,9 @@ export const defaultSectionsData: Record<string, any> = {
     companyTitle: 'METLİ / FMT',
     companySubtitle: 'Ticaret & FMT Makina',
     phones: [
-      { label: 'Bilal METLİ', number: '0545 479 05 85', tel: '+905454790585' },
-      { label: 'Fatih METLİ', number: '0531 345 73 04', tel: '+905313457304' },
-      { label: 'Abdullah METLİ', number: '0535 616 49 41', tel: '+905356164941' }
+      { label: 'Bilal METLİ', number: '0545 479 05 85', tel: '+905454790585', whatsapp: '0545 479 05 85', role: 'Satış & Pazarlama' },
+      { label: 'Fatih METLİ', number: '0531 345 73 04', tel: '+905313457304', whatsapp: '0531 345 73 04', role: 'Mühendislik & Üretim' },
+      { label: 'Abdullah METLİ', number: '0535 616 49 41', tel: '+905356164941', whatsapp: '0535 616 49 41', role: 'Kurucu' }
     ],
     emails: [
       'metliticaret@hotmail.com',

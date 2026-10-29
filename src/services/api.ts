@@ -209,6 +209,36 @@ export const changePassword = (id: number, password: string) =>
 
 export const deleteAdminUser = (id: number) => request(`/api/admin/users/${id}`, { method: 'DELETE' });
 
+// ═══ Contact Messages ═══
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+  is_read: number;
+  created_at: string;
+}
+
+export const sendContactMessage = (data: { name: string; email: string; phone?: string; message: string }) =>
+  request<{ success: boolean; id: number }>('/api/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+export const getContactMessages = () => request<ContactMessage[]>('/api/messages');
+
+export const markMessageRead = (id: number, is_read: number = 1) =>
+  request<{ success: boolean }>(`/api/messages/${id}/read`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_read }),
+  });
+
+export const deleteContactMessage = (id: number) =>
+  request<{ success: boolean }>(`/api/messages/${id}`, { method: 'DELETE' });
+
 // ═══ Utility ═══
 export function getImageUrl(path: string) {
   if (!path) return '';

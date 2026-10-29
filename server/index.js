@@ -128,6 +128,18 @@ async function initDB() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS contact_messages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      phone VARCHAR(100),
+      message TEXT NOT NULL,
+      is_read TINYINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
   // Auto-migrate missing columns in products table if existing from older schema
   try {
     const [colsSort] = await pool.execute("SHOW COLUMNS FROM products LIKE 'sort_order'");
@@ -372,9 +384,9 @@ async function initDB() {
       companyTitle: 'METLİ / FMT',
       companySubtitle: 'Ticaret & FMT Makina',
       phones: [
-        { label: 'Bilal METLİ', number: '0545 479 05 85', tel: '+905454790585' },
-        { label: 'Fatih METLİ', number: '0531 345 73 04', tel: '+905313457304' },
-        { label: 'Abdullah METLİ', number: '0535 616 49 41', tel: '+905356164941' }
+        { label: 'Bilal METLİ', number: '0545 479 05 85', tel: '+905454790585', whatsapp: '0545 479 05 85', role: 'Satış & Pazarlama' },
+        { label: 'Fatih METLİ', number: '0531 345 73 04', tel: '+905313457304', whatsapp: '0531 345 73 04', role: 'Mühendislik & Üretim' },
+        { label: 'Abdullah METLİ', number: '0535 616 49 41', tel: '+905356164941', whatsapp: '0535 616 49 41', role: 'Kurucu' }
       ],
       emails: [
         'metliticaret@hotmail.com',
@@ -651,6 +663,51 @@ app.delete('/api/blog/:id', auth, async (req, res) => {
     await pool.execute('DELETE FROM blog_posts WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ═══ CONTACT MESSAGES ROUTES ═══
+app.post('/api/messages', async (req, res) => {
+  try {
+    const { name, email, phone, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Ad, e-posta ve mesaj alanları zorunludur' });
+    }
+    const [result] = await pool.execute(
+      'INSERT INTO contact_messages (name, email, phone, message) VALUES (?, ?, ?, ?)',
+      [name.trim(), email.trim(), (phone || '').trim(), message.trim()]
+    );
+    res.json({ success: true, id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/messages', auth, async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM contact_messages ORDER BY created_at DESC, id DESC');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/messages/:id/read', auth, async (req, res) => {
+  try {
+    const is_read = req.body.is_read !== undefined ? (req.body.is_read ? 1 : 0) : 1;
+    await pool.execute('UPDATE contact_messages SET is_read = ? WHERE id = ?', [is_read, req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/messages/:id', auth, async (req, res) => {
+  try {
+    await pool.execute('DELETE FROM contact_messages WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ═══ FILE / VIDEO / IMAGE UPLOAD ═══

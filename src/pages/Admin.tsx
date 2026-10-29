@@ -5,6 +5,7 @@ import { resolveLocalizedText } from '@/hooks/useTranslatedData';
 import { getImageUrl, uploadMediaFiles } from '@/services/api';
 import { useData, type Product, type BlogPost, type Multilang } from '@/context/DataContext';
 import * as api from '@/services/api';
+import { formatTelLink, formatWhatsAppLink } from '@/utils/phone';
 
 const LANGUAGES = [
   { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
@@ -2504,27 +2505,29 @@ function FooterEditor() {
   const [copyright, setCopyright] = useState<Multilang>(ensureMultilang(footerData.copyrightText || footerData.copyright));
   const [legalCompany, setLegalCompany] = useState(footerData.legalCompany || 'FMT Makina Mühendislik İth. İhr. San. Tic. Ltd. Şti.');
 
-  // Normalize phones safely into array of { label, number }
-  const [phones, setPhones] = useState<{ label: string; number: string }[]>(() => {
+  // Normalize phones safely into array of { label, number, whatsapp, role }
+  const [phones, setPhones] = useState<{ label: string; number: string; whatsapp?: string; role?: string }[]>(() => {
     const raw = footerData.phones;
     if (Array.isArray(raw)) {
       return raw.map((item: any) => {
         if (typeof item === 'string') {
-          return { label: '', number: item };
+          return { label: '', number: item, whatsapp: '', role: '' };
         }
         if (typeof item === 'object' && item !== null) {
           return {
-            label: item.label || '',
-            number: item.number || item.tel || '',
+            label: item.label || item.name || '',
+            number: item.number || item.phone || item.tel || '',
+            whatsapp: item.whatsapp || '',
+            role: item.role || '',
           };
         }
-        return { label: '', number: '' };
+        return { label: '', number: '', whatsapp: '', role: '' };
       });
     }
     return [
-      { label: 'Bilal METLİ', number: '0545 479 05 85' },
-      { label: 'Fatih METLİ', number: '0531 345 73 04' },
-      { label: 'Abdullah METLİ', number: '0535 616 49 41' },
+      { label: 'Bilal METLİ', number: '0545 479 05 85', whatsapp: '0545 479 05 85', role: 'Satış & Pazarlama' },
+      { label: 'Fatih METLİ', number: '0531 345 73 04', whatsapp: '0531 345 73 04', role: 'Mühendislik & Üretim' },
+      { label: 'Abdullah METLİ', number: '0535 616 49 41', whatsapp: '0535 616 49 41', role: 'Kurucu' },
     ];
   });
 
@@ -2534,13 +2537,15 @@ function FooterEditor() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Format phones for clean storage
+      // Format phones for clean storage and ensure dialable tel link
       const formattedPhones = phones
         .filter(p => p.number.trim())
         .map(p => ({
           label: p.label.trim(),
           number: p.number.trim(),
-          tel: p.number.replace(/\s+/g, ''),
+          tel: formatTelLink(p.number.trim()),
+          whatsapp: (p.whatsapp || p.number).trim(),
+          role: (p.role || '').trim(),
         }));
 
       await updateSectionData('footer_settings', {
@@ -2555,7 +2560,7 @@ function FooterEditor() {
         emails: emails.filter(e => e.trim()),
         certificates: certificates.filter(c => c.trim()),
       });
-      setSavedMsg('Altbilgi ve iletişim ayarları başarıyla kaydedildi!');
+      setSavedMsg('İletişim numaraları ve ayarlar başarıyla kaydedildi!');
       setTimeout(() => setSavedMsg(''), 4000);
     } catch (e) {
       alert('Kaydedilirken hata oluştu');
@@ -2581,6 +2586,206 @@ function FooterEditor() {
           >
             {saving ? 'Kaydediliyor...' : '💾 Değişiklikleri Kaydet'}
           </button>
+        </div>
+      </div>
+
+      {/* 1. TELEFON VE WHATSAPP NUMARALARI (ÖNCELİKLİ) */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
+        <div className="flex flex-wrap justify-between items-center gap-3 border-b pb-4">
+          <div>
+            <h3 className="font-bold text-lg text-secondary-dark flex items-center gap-2">
+              <span>📞</span> Telefon & WhatsApp Numaraları
+              <span className="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
+                Canlı Bağlantı
+              </span>
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              Sağ alttaki <strong>"Bizi Arayın"</strong> butonundaki, <strong>Footer</strong>'daki ve <strong>İletişim</strong> sayfasındaki numaraları buradan yönetebilirsiniz.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPhones([...phones, { label: '', number: '', whatsapp: '', role: '' }])}
+            className="text-xs bg-primary text-white px-4 py-2 rounded-xl font-bold hover:bg-primary-dark transition-all shadow-sm flex items-center gap-1.5"
+          >
+            <span>+</span> Yeni Numara Ekle
+          </button>
+        </div>
+
+        {/* Bilgilendirme Kutusu */}
+        <div className="p-3.5 bg-emerald-50/70 rounded-xl border border-emerald-200/60 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 text-base">
+            💬
+          </div>
+          <div className="text-xs text-emerald-950 space-y-1">
+            <p className="font-bold">Otomatik Arama ve WhatsApp Entegrasyonu</p>
+            <p className="text-emerald-800 leading-relaxed">
+              Ziyaretçiler sitedeki herhangi bir numaraya tıkladığında veya sağ alttaki buton listesinden seçtiğinde anında o numara aranır. WhatsApp simgelerine tıklandığında ise doğrudan ilgili kişiyle WhatsApp sohbeti başlatılır.
+            </p>
+          </div>
+        </div>
+
+        {/* Numaralar Listesi */}
+        <div className="space-y-4">
+          {phones.map((p, idx) => (
+            <div key={idx} className="p-4 bg-gray-50/70 rounded-2xl border border-gray-200/80 space-y-3 hover:border-gray-300 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-secondary-dark text-white text-[11px] font-bold flex items-center justify-center">
+                    {idx + 1}
+                  </span>
+                  <span className="text-xs font-bold text-gray-700">
+                    {p.label ? p.label : `Kişi / Numara #${idx + 1}`}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPhones(phones.filter((_, i) => i !== idx))}
+                  className="text-xs text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                >
+                  Kaldır
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* İsim */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                    Yetkili Adı / Birim
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="örn: Bilal METLİ"
+                    value={p.label || ''}
+                    onChange={e => {
+                      const copy = [...phones];
+                      copy[idx].label = e.target.value;
+                      setPhones(copy);
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white outline-none focus:border-primary font-medium"
+                  />
+                </div>
+
+                {/* Telefon No */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                    Telefon Numarası
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="örn: 0545 479 05 85"
+                    value={p.number || ''}
+                    onChange={e => {
+                      const copy = [...phones];
+                      copy[idx].number = e.target.value;
+                      setPhones(copy);
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white outline-none focus:border-primary font-mono font-bold text-secondary-dark"
+                  />
+                </div>
+
+                {/* WhatsApp No */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                    WhatsApp Numarası
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Boşsa telefon kullanılır"
+                    value={p.whatsapp || ''}
+                    onChange={e => {
+                      const copy = [...phones];
+                      copy[idx].whatsapp = e.target.value;
+                      setPhones(copy);
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white outline-none focus:border-primary font-mono text-emerald-800"
+                  />
+                </div>
+
+                {/* Rol / Departman */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                    Unvan / Departman
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="örn: Satış & Pazarlama"
+                    value={p.role || ''}
+                    onChange={e => {
+                      const copy = [...phones];
+                      copy[idx].role = e.target.value;
+                      setPhones(copy);
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Canlı Test Butonları */}
+              {p.number.trim() && (
+                <div className="pt-2 border-t border-gray-200/50 flex flex-wrap items-center gap-3 text-xs">
+                  <span className="text-[11px] text-gray-500 font-medium">Önizleme & Test:</span>
+                  <a
+                    href={formatTelLink(p.number)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors font-medium text-[11px]"
+                    title="Aramayı Test Et"
+                  >
+                    <span>📞</span> Arama: {formatTelLink(p.number)}
+                  </a>
+                  <a
+                    href={formatWhatsAppLink(p.whatsapp || p.number, `Merhaba ${p.label || ''}, web siteniz üzerinden ulaşıyorum.`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors font-medium text-[11px]"
+                    title="WhatsApp'ı Test Et"
+                  >
+                    <span>💬</span> WhatsApp: {formatWhatsAppLink(p.whatsapp || p.number)}
+                  </a>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. E-POSTALAR */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+        <div className="flex justify-between items-center border-b pb-3">
+          <div>
+            <h3 className="font-bold text-base text-secondary-dark">✉️ E-posta Adresleri ({emails.length})</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Footer ve iletişim sayfasında görüntülenen e-posta adresleri</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEmails([...emails, ''])}
+            className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg font-bold hover:bg-primary/20"
+          >
+            + Yeni E-posta Ekle
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {emails.map((m, idx) => (
+            <div key={idx} className="flex gap-2">
+              <input
+                type="email"
+                placeholder="örn: info@metliticaret.com"
+                value={m}
+                onChange={e => {
+                  const copy = [...emails];
+                  copy[idx] = e.target.value;
+                  setEmails(copy);
+                }}
+                className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none font-mono bg-white focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={() => setEmails(emails.filter((_, i) => i !== idx))}
+                className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-xl font-bold"
+              >
+                Sil
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -2643,104 +2848,6 @@ function FooterEditor() {
         </div>
       </div>
 
-      {/* Telefon ve E-postalar */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
-        <h3 className="font-bold text-base text-secondary-dark border-b pb-3">📞 İletişim Numaraları & E-postalar</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Telefonlar */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-gray-700 uppercase">Telefon Numaraları ({phones.length})</label>
-              <button
-                type="button"
-                onClick={() => setPhones([...phones, { label: '', number: '' }])}
-                className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-lg font-bold hover:bg-primary/20"
-              >
-                + Yeni Telefon Ekle
-              </button>
-            </div>
-            {phones.map((p, idx) => (
-              <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Telefon #{idx + 1}</span>
-                  <button
-                    type="button"
-                    onClick={() => setPhones(phones.filter((_, i) => i !== idx))}
-                    className="text-xs text-red-600 hover:text-red-800 font-bold"
-                  >
-                    Sil
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="İsim / Birim (örn: Bilal METLİ)"
-                      value={p.label || ''}
-                      onChange={e => {
-                        const copy = [...phones];
-                        copy[idx].label = e.target.value;
-                        setPhones(copy);
-                      }}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs bg-white outline-none focus:border-primary font-medium"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Numara (örn: 0545 479 05 85)"
-                      value={p.number || ''}
-                      onChange={e => {
-                        const copy = [...phones];
-                        copy[idx].number = e.target.value;
-                        setPhones(copy);
-                      }}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs bg-white outline-none focus:border-primary font-mono font-bold text-secondary-dark"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* E-postalar */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-gray-700 uppercase">E-posta Adresleri ({emails.length})</label>
-              <button
-                type="button"
-                onClick={() => setEmails([...emails, ''])}
-                className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-lg font-bold hover:bg-primary/20"
-              >
-                + Yeni E-posta Ekle
-              </button>
-            </div>
-            {emails.map((m, idx) => (
-              <div key={idx} className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="örn: info@metliticaret.com"
-                  value={m}
-                  onChange={e => {
-                    const copy = [...emails];
-                    copy[idx] = e.target.value;
-                    setEmails(copy);
-                  }}
-                  className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-xs outline-none font-mono bg-white focus:border-primary"
-                />
-                <button
-                  type="button"
-                  onClick={() => setEmails(emails.filter((_, i) => i !== idx))}
-                  className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-lg font-bold"
-                >
-                  Sil
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Sertifika Rozetleri */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
@@ -2784,9 +2891,308 @@ function FooterEditor() {
   );
 }
 
+// 7. CONTACT MESSAGES VIEWER (İletişim Formu Mesajları)
+function MessagesViewer({ onUnreadChange }: { onUnreadChange?: (count: number) => void }) {
+  const [messages, setMessages] = useState<api.ContactMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+  const [search, setSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const fetchMessages = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getContactMessages();
+      setMessages(data || []);
+      const unread = (data || []).filter(m => !m.is_read).length;
+      onUnreadChange?.(unread);
+    } catch (err) {
+      console.error('Mesajlar yüklenemedi:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, []);
+
+  const handleToggleRead = async (msg: api.ContactMessage) => {
+    const nextStatus = msg.is_read ? 0 : 1;
+    try {
+      await api.markMessageRead(msg.id, nextStatus);
+      const updated = messages.map(m => m.id === msg.id ? { ...m, is_read: nextStatus } : m);
+      setMessages(updated);
+      const unread = updated.filter(m => !m.is_read).length;
+      onUnreadChange?.(unread);
+    } catch (e) {
+      alert('İşlem başarısız');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+    setDeletingId(id);
+    try {
+      await api.deleteContactMessage(id);
+      const updated = messages.filter(m => m.id !== id);
+      setMessages(updated);
+      const unread = updated.filter(m => !m.is_read).length;
+      onUnreadChange?.(unread);
+    } catch (e) {
+      alert('Silinirken hata oluştu');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filtered = messages.filter(m => {
+    if (filter === 'unread' && m.is_read) return false;
+    if (filter === 'read' && !m.is_read) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const matchName = m.name?.toLowerCase().includes(q);
+      const matchEmail = m.email?.toLowerCase().includes(q);
+      const matchPhone = m.phone?.toLowerCase().includes(q);
+      const matchMsg = m.message?.toLowerCase().includes(q);
+      return matchName || matchEmail || matchPhone || matchMsg;
+    }
+    return true;
+  });
+
+  const unreadCount = messages.filter(m => !m.is_read).length;
+  const readCount = messages.filter(m => m.is_read).length;
+
+  return (
+    <div className="space-y-6 max-w-5xl">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-secondary-dark">📬 Gelen İletişim Formu Mesajları</h2>
+            {unreadCount > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white animate-pulse">
+                {unreadCount} Yeni
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Web sitenizdeki İletişim sayfasından ziyaretçilerin gönderdiği form mesajları burada listelenir.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={fetchMessages}
+          disabled={loading}
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-secondary-dark rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+        >
+          <span className={loading ? 'animate-spin' : ''}>🔄</span>
+          <span>Yenile</span>
+        </button>
+      </div>
+
+      {/* Stats and Filter Bar */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
+        {/* Filters */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              filter === 'all' ? 'bg-primary text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Tümü ({messages.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('unread')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              filter === 'unread' ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <span>Okunmamış</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filter === 'unread' ? 'bg-white/30 text-white' : 'bg-amber-100 text-amber-800'}`}>
+              {unreadCount}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('read')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              filter === 'read' ? 'bg-secondary-dark text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Okunmuş ({readCount})
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="w-full sm:w-72">
+          <input
+            type="text"
+            placeholder="Kişi, e-posta, tel veya mesaj ara..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white outline-none focus:border-primary transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Messages List */}
+      {loading ? (
+        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs font-semibold text-gray-500">Mesajlar yükleniyor...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl p-16 text-center border border-gray-100 space-y-3">
+          <div className="text-5xl">📭</div>
+          <h3 className="font-bold text-base text-secondary-dark">
+            {search ? 'Arama kriterine uygun mesaj bulunamadı' : 'Henüz mesaj yok'}
+          </h3>
+          <p className="text-xs text-gray-400 max-w-sm mx-auto">
+            {search ? 'Farklı bir kelime ile aramayı deneyebilirsiniz.' : 'Sitenizdeki iletişim formundan bir mesaj gönderildiğinde burada görünecektir.'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map(msg => {
+            const formattedDate = new Date(msg.created_at).toLocaleString('tr-TR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            return (
+              <div
+                key={msg.id}
+                className={`bg-white rounded-2xl p-6 shadow-sm border transition-all ${
+                  !msg.is_read
+                    ? 'border-amber-300 ring-2 ring-amber-100 bg-amber-50/20'
+                    : 'border-gray-100 hover:border-gray-200'
+                }`}
+              >
+                {/* Top Row: Sender Info & Status Badge */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-sm">
+                      {msg.name ? msg.name.charAt(0).toUpperCase() : '?'}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold text-base text-secondary-dark">{msg.name}</h4>
+                        {!msg.is_read ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+                            Yeni Mesaj
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">
+                            Okundu
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {formattedDate}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick Action Toolbars */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleRead(msg)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                        msg.is_read
+                          ? 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                      }`}
+                    >
+                      {msg.is_read ? '📩 Okunmadı Yap' : '✓ Okundu Olarak İşaretle'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(msg.id)}
+                      disabled={deletingId === msg.id}
+                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                    >
+                      {deletingId === msg.id ? 'Siliniyor...' : '🗑️ Sil'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Contact details row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-3 text-xs">
+                  {/* Phone */}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 font-bold">📞 Tel:</span>
+                      <span className="font-bold text-secondary-dark font-mono">
+                        {msg.phone || 'Belirtilmedi'}
+                      </span>
+                    </div>
+                    {msg.phone && (
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={formatTelLink(msg.phone)}
+                          className="px-2 py-1 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors font-bold text-[11px]"
+                          title="Hemen Ara"
+                        >
+                          Ara
+                        </a>
+                        <a
+                          href={formatWhatsAppLink(msg.phone, `Merhaba Sayın ${msg.name}, METLİ üzerinden ilettiğiniz mesajınız ile ilgili görüşmek üzere yazıyorum.`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors font-bold text-[11px]"
+                          title="WhatsApp'tan Yaz"
+                        >
+                          WhatsApp
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-gray-400 font-bold shrink-0">✉️ E-posta:</span>
+                      <span className="font-mono text-secondary-dark truncate">{msg.email}</span>
+                    </div>
+                    {msg.email && (
+                      <a
+                        href={`mailto:${msg.email}?subject=METLİ İletişim Talebiniz Hakkında&body=Merhaba Sayın ${encodeURIComponent(msg.name)},`}
+                        className="px-2 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-bold text-[11px] shrink-0"
+                      >
+                        E-posta Gönder
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Message Body */}
+                <div className="mt-2 p-4 rounded-xl bg-gray-50/70 border border-gray-100">
+                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mesaj İçeriği:</p>
+                  <p className="text-sm text-secondary-dark whitespace-pre-wrap leading-relaxed">
+                    {msg.message}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ===== MAIN ADMIN CONTAINER =====
 type AdminTab =
   | 'dashboard'
+  | 'messages'
   | 'homepage'
   | 'gallery'
   | 'about'
@@ -2800,6 +3206,7 @@ type AdminTab =
 export default function Admin() {
   const data = useData();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [unreadCount, setUnreadCount] = useState(0);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
@@ -2808,6 +3215,18 @@ export default function Admin() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingUserPass, setEditingUserPass] = useState<{ id: string; name: string } | null>(null);
   const [newPass, setNewPass] = useState('');
+
+  useEffect(() => {
+    if (data.isLoggedIn) {
+      api.getContactMessages()
+        .then(msgs => {
+          if (Array.isArray(msgs)) {
+            setUnreadCount(msgs.filter(m => !m.is_read).length);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [data.isLoggedIn]);
 
   if (data.isAuthLoading) {
     return (
@@ -2829,12 +3248,17 @@ export default function Admin() {
       group: 'Ana Yapı & Sayfalar',
       items: [
         { key: 'dashboard' as AdminTab, label: 'Dashboard', icon: '📊' },
+        {
+          key: 'messages' as AdminTab,
+          label: unreadCount > 0 ? `Gelen Mesajlar (${unreadCount})` : 'Gelen Mesajlar',
+          icon: '📬'
+        },
         { key: 'homepage' as AdminTab, label: 'Ana Sayfa (Hero & Video)', icon: '🏠' },
         { key: 'gallery' as AdminTab, label: 'Üretim & Galeri', icon: '📸' },
         { key: 'about' as AdminTab, label: 'Hakkımızda', icon: '🏢' },
         { key: 'telli' as AdminTab, label: 'Telli Terbiye Sistemi', icon: '🌱' },
         { key: 'services' as AdminTab, label: 'Hizmet Alanları (Bant)', icon: '🏛️' },
-        { key: 'footer' as AdminTab, label: 'Altbilgi & İletişim', icon: '📞' },
+        { key: 'footer' as AdminTab, label: 'İletişim & Numaralar', icon: '📞' },
       ],
     },
     {
@@ -2999,6 +3423,17 @@ export default function Admin() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('messages')}
+                className="flex items-center gap-1.5 text-xs font-bold text-amber-950 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-full border border-amber-300 transition-all shadow-xs animate-bounce"
+                title="Gelen yeni mesajları inceleyin"
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span>📬 {unreadCount} Yeni Mesaj</span>
+              </button>
+            )}
             <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               MySQL Bağlantısı Canlı
@@ -3014,21 +3449,22 @@ export default function Admin() {
           {/* 1. DASHBOARD */}
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {[
+                  { label: 'Gelen Mesajlar', value: unreadCount > 0 ? `${unreadCount} Yeni` : '0 Yeni', icon: '📬', color: 'from-amber-600 to-orange-700', sub: 'İletişim Formu' },
                   { label: 'Toplam Ürün', value: data.products.length, icon: '📦', color: 'from-primary to-primary-dark', sub: 'Yayında' },
                   { label: 'Blog & Projeler', value: data.blogPosts.length, icon: '📝', color: 'from-blue-600 to-indigo-700', sub: 'Yayınlandı' },
-                  { label: 'Yönetilebilir Bölüm', value: '7 Bölüm', icon: '⚙️', color: 'from-emerald-600 to-teal-700', sub: 'MySQL Tabanlı' },
+                  { label: 'Yönetilebilir Bölüm', value: '8 Bölüm', icon: '⚙️', color: 'from-emerald-600 to-teal-700', sub: 'MySQL Tabanlı' },
                   { label: 'Sistem Yöneticisi', value: data.adminUsers.length, icon: '👥', color: 'from-purple-600 to-violet-800', sub: 'Aktif Kullanıcı' },
                 ].map((stat, i) => (
-                  <div key={i} className={`bg-gradient-to-br ${stat.color} rounded-2xl p-6 text-white shadow-lg relative overflow-hidden`}>
+                  <div key={i} className={`bg-gradient-to-br ${stat.color} rounded-2xl p-5 text-white shadow-lg relative overflow-hidden`}>
                     <div className="flex items-center justify-between relative z-10">
                       <div>
                         <p className="text-xs font-semibold text-white/80">{stat.label}</p>
-                        <p className="text-3xl font-black mt-1 tracking-tight">{stat.value}</p>
-                        <p className="text-[10px] text-white/60 mt-1 font-medium">{stat.sub}</p>
+                        <p className="text-2xl font-black mt-1 tracking-tight">{stat.value}</p>
+                        <p className="text-[10px] text-white/70 mt-1 font-medium">{stat.sub}</p>
                       </div>
-                      <span className="text-4xl opacity-40">{stat.icon}</span>
+                      <span className="text-3xl opacity-40">{stat.icon}</span>
                     </div>
                   </div>
                 ))}
@@ -3039,12 +3475,13 @@ export default function Admin() {
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">Hızlı Düzenleme Menüsü</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {[
+                    { tab: 'messages' as AdminTab, title: unreadCount > 0 ? `Gelen Form Mesajları (${unreadCount})` : 'Gelen Form Mesajları', desc: 'İletişim sayfasından gelen müşteri mesajları, telefonlar ve talepler', icon: '📬' },
                     { tab: 'homepage' as AdminTab, title: 'Ana Sayfa & Hero Videosu', desc: 'Hero başlığı, video oynatma listesi ve istatistikler', icon: '🏠' },
                     { tab: 'gallery' as AdminTab, title: 'Üretim & Proje Galerisi', desc: 'Ana sayfa fotoğraf galerisini güncelle', icon: '📸' },
                     { tab: 'about' as AdminTab, title: 'Hakkımızda Sayfası', desc: 'Tarihçe, vizyon, fabrika bilgileri ve zaman çizelgesi', icon: '🏢' },
                     { tab: 'telli' as AdminTab, title: 'Telli Terbiye Sistemi', desc: 'Sistem avantajları, bileşenler ve küçük resimli aksesuarlar', icon: '🌱' },
                     { tab: 'services' as AdminTab, title: 'Hizmet Alanları (Bant)', desc: 'İl Tarım ve Orman Genel Müdürlüğü gibi kurumları yönet', icon: '🏛️' },
-                    { tab: 'footer' as AdminTab, title: 'Altbilgi & İletişim', desc: 'Telefonlar, e-postalar, adres ve hızlı bağlantılar', icon: '📞' },
+                    { tab: 'footer' as AdminTab, title: 'İletişim, Telefon & WhatsApp', desc: 'Bizi Arayın butonunu, Footer ve iletişim numaralarını yönetin', icon: '📞' },
                     { tab: 'products' as AdminTab, title: 'Ürün Kataloğu', desc: 'Yeni ürünler ekle, teknik özellikleri ve fotoğrafları düzenle', icon: '📦' },
                     { tab: 'blog' as AdminTab, title: 'Blog & Projeler', desc: 'Yeni yazılar, çoklu fotoğraf yükleme ve kapak seçimi', icon: '📝' },
                   ].map((card, idx) => (
@@ -3066,6 +3503,9 @@ export default function Admin() {
               </div>
             </div>
           )}
+
+          {/* 1.5. CONTACT MESSAGES */}
+          {activeTab === 'messages' && <MessagesViewer onUnreadChange={setUnreadCount} />}
 
           {/* 2. HOMEPAGE */}
           {activeTab === 'homepage' && <HomeEditor />}

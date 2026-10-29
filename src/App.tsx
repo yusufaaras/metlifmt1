@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { DataProvider } from '@/context/DataContext';
-import CustomCursor from '@/components/CustomCursor';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FloatingPhone from '@/components/FloatingPhone';
@@ -55,7 +54,6 @@ function AppContent() {
 
   return (
     <>
-      <CustomCursor />
       <ScrollToTop />
       {!isAdmin && <Navbar />}
       <AnimatePresence mode="wait">

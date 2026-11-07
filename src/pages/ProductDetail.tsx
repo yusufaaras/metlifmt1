@@ -130,7 +130,7 @@ export default function ProductDetail() {
                   </svg>
                 </a>
                 <a
-                  href={formatWhatsAppLink(primaryWa, `Merhaba, "${title}" ürünü hakkında bilgi ve fiyat teklifi almak istiyorum.`)}
+                  href={formatWhatsAppLink(primaryWa, `Merhaba, "${localizedTitle}" ürünü hakkında bilgi ve fiyat teklifi almak istiyorum.`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="WhatsApp'tan Yaz"
